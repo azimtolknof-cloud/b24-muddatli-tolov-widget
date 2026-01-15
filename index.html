@@ -8,21 +8,20 @@
   <!-- Bitrix24 JS API -->
   <script src="https://api.bitrix24.com/api/v1/"></script>
 
-  <!-- FullCalendar -->
+  <!-- FullCalendar JS (CSS ni qo‘ymaymiz — sizda 404 bo‘layotgandi, keyin qo‘shamiz) -->
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 
   <style>
-    html, body { height:100%; margin:0; padding:0; font-family: Arial, sans-serif; }
+    html,body { height:100%; margin:0; font-family: Arial, sans-serif; background:#fff; }
     .bar { display:flex; gap:8px; align-items:center; padding:10px; border-bottom:1px solid #eee; }
     .bar button { padding:6px 10px; cursor:pointer; }
-    .hint { color:#666; font-size: 12px; }
-    .err { color:#b00; white-space: pre-wrap; padding: 10px; }
-    #calendar { padding: 10px; }
-    .panel { padding: 10px; border-top:1px solid #eee; display:none; background:#fafafa; }
+    .hint { color:#666; font-size:12px; }
+    .err { color:#b00; white-space:pre-wrap; padding:10px; }
+    #calendar { padding:10px; }
+    .panel { display:none; padding:10px; border-top:1px solid #eee; background:#fafafa; }
     .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:8px; }
-    .row label { min-width: 220px; }
-    .row input { padding:6px 8px; width: 320px; }
-    .row small { color:#666; }
+    .row label { min-width:220px; }
+    .row input { width:320px; padding:6px 8px; }
   </style>
 </head>
 <body>
@@ -37,252 +36,177 @@
   <div id="calendar"></div>
 
   <div id="settingsPanel" class="panel">
-    <h3>Settings (bir marta to‘ldirasiz)</h3>
-
+    <h3>Settings</h3>
     <div class="row">
-      <label>SPA nomi (Title):</label>
-      <input id="cfgSpaTitle" placeholder="MUDDATLI TO'LOV" />
-      <small>CRM.type.list ichidan title bo‘yicha topiladi</small>
+      <label>SPA nomi (Title)</label>
+      <input id="cfgSpaTitle" placeholder="MUDDATLI TO'LOV">
     </div>
-
     <div class="row">
-      <label>Due date field code:</label>
-      <input id="cfgDueField" placeholder="ufCrmXX_DUE_DATE" />
-      <small>Date field code</small>
+      <label>Due date field code</label>
+      <input id="cfgDueField" placeholder="ufCrmXX_DUE_DATE">
     </div>
-
     <div class="row">
-      <label>Amount field code:</label>
-      <input id="cfgAmountField" placeholder="ufCrmXX_AMOUNT" />
-      <small>Number field code</small>
+      <label>Amount field code</label>
+      <input id="cfgAmountField" placeholder="ufCrmXX_AMOUNT">
     </div>
-
     <div class="row">
-      <label>Installment field code:</label>
-      <input id="cfgInstField" placeholder="ufCrmXX_INSTALLMENT" />
-      <small>Masalan: 3/12</small>
+      <label>Installment field code</label>
+      <input id="cfgInstField" placeholder="ufCrmXX_INSTALLMENT">
     </div>
-
     <div class="row">
-      <label>Deal parent field:</label>
-      <input id="cfgParentField" placeholder="parentId2" />
-      <small>Deal uchun odatda parentId2</small>
+      <label>Deal parent field</label>
+      <input id="cfgParentField" placeholder="parentId2">
     </div>
-
     <div class="row">
-      <label>StageId: PENDING:</label>
-      <input id="cfgStagePending" placeholder="DTXXX:NEW" />
-      <small>SPA kanban stageId</small>
+      <label>StageId: PENDING</label>
+      <input id="cfgStagePending" placeholder="DTXXX:NEW">
     </div>
-
     <div class="row">
-      <label>StageId: PAID:</label>
-      <input id="cfgStagePaid" placeholder="DTXXX:SUCCESS" />
-      <small>Event bosilganda shu stagega o‘tadi</small>
+      <label>StageId: PAID</label>
+      <input id="cfgStagePaid" placeholder="DTXXX:SUCCESS">
     </div>
-
     <div class="row">
       <button id="btnSaveSettings">Save</button>
-      <small>browser localStorage’da saqlanadi</small>
     </div>
   </div>
 
   <div id="genPanel" class="panel">
     <h3>Generate schedule</h3>
     <div class="row">
-      <label>Months:</label>
-      <input id="genMonths" type="number" min="1" value="12" />
+      <label>Months</label>
+      <input id="genMonths" type="number" min="1" value="12">
     </div>
     <div class="row">
-      <label>Start date (YYYY-MM-DD):</label>
-      <input id="genStart" placeholder="2026-01-16" />
+      <label>Start date (YYYY-MM-DD)</label>
+      <input id="genStart" placeholder="2026-01-16">
     </div>
     <div class="row">
-      <label>Total amount:</label>
-      <input id="genTotal" type="number" min="0" placeholder="12000000" />
+      <label>Total amount</label>
+      <input id="genTotal" type="number" min="0" placeholder="12000000">
     </div>
     <div class="row">
       <button id="btnDoGenerate">Create items</button>
-      <small>Har oy uchun SPA item yaratadi</small>
     </div>
-    <div class="err" id="genErr"></div>
+    <div id="genErr" class="err"></div>
   </div>
 
-  <div class="err" id="err"></div>
+  <div id="err" class="err"></div>
 
 <script>
-(function () {
-  const LS_KEY = "muddatli_tolov_cfg_v2";
+(function(){
+  const LS_KEY = "muddatli_tolov_cfg_v3";
+  const $ = (id)=>document.getElementById(id);
 
-  const el = (id) => document.getElementById(id);
-  const errBox = el("err");
-  const statusBox = el("status");
+  const statusBox = $("status");
+  const errBox = $("err");
+  const genErrBox = $("genErr");
 
-  let calendar;
+  let calendar = null;
   let dealId = null;
   let entityTypeId = null;
 
-  function setStatus(msg) { statusBox.textContent = msg || ""; }
-  function setError(msg) { errBox.textContent = msg || ""; }
-
-  function showPanel(panelId) {
-    ["settingsPanel","genPanel"].forEach(id => el(id).style.display = (id === panelId ? "block" : "none"));
+  function setStatus(t){ statusBox.textContent = t || ""; }
+  function setError(t){ errBox.textContent = t || ""; }
+  function show(panelId){
+    ["settingsPanel","genPanel"].forEach(id => $(id).style.display = (id===panelId ? "block" : "none"));
   }
 
-  function loadCfg() {
-    const def = {
-      spaTitle: "MUDDATLI TO'LOV",
-      dueField: "",
-      amountField: "",
-      instField: "",
-      parentField: "parentId2",
-      stagePending: "",
-      stagePaid: ""
-    };
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return def;
-    try { return Object.assign(def, JSON.parse(raw)); } catch { return def; }
+  // ==== CFG ====
+  function loadCfg(){
+    const def = { spaTitle:"MUDDATLI TO'LOV", dueField:"", amountField:"", instField:"", parentField:"parentId2", stagePending:"", stagePaid:"" };
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return def;
+      return Object.assign(def, JSON.parse(raw));
+    } catch { return def; }
   }
-
-  function saveCfg(cfg) { localStorage.setItem(LS_KEY, JSON.stringify(cfg)); }
-
-  function cfgToUI(cfg) {
-    el("cfgSpaTitle").value = cfg.spaTitle || "";
-    el("cfgDueField").value = cfg.dueField || "";
-    el("cfgAmountField").value = cfg.amountField || "";
-    el("cfgInstField").value = cfg.instField || "";
-    el("cfgParentField").value = cfg.parentField || "parentId2";
-    el("cfgStagePending").value = cfg.stagePending || "";
-    el("cfgStagePaid").value = cfg.stagePaid || "";
+  function saveCfg(cfg){ localStorage.setItem(LS_KEY, JSON.stringify(cfg)); }
+  function cfgToUI(cfg){
+    $("cfgSpaTitle").value = cfg.spaTitle||"";
+    $("cfgDueField").value = cfg.dueField||"";
+    $("cfgAmountField").value = cfg.amountField||"";
+    $("cfgInstField").value = cfg.instField||"";
+    $("cfgParentField").value = cfg.parentField||"parentId2";
+    $("cfgStagePending").value = cfg.stagePending||"";
+    $("cfgStagePaid").value = cfg.stagePaid||"";
   }
-
-  function uiToCfg() {
+  function uiToCfg(){
     return {
-      spaTitle: el("cfgSpaTitle").value.trim() || "MUDDATLI TO'LOV",
-      dueField: el("cfgDueField").value.trim(),
-      amountField: el("cfgAmountField").value.trim(),
-      instField: el("cfgInstField").value.trim(),
-      parentField: el("cfgParentField").value.trim() || "parentId2",
-      stagePending: el("cfgStagePending").value.trim(),
-      stagePaid: el("cfgStagePaid").value.trim()
+      spaTitle: $("cfgSpaTitle").value.trim() || "MUDDATLI TO'LOV",
+      dueField: $("cfgDueField").value.trim(),
+      amountField: $("cfgAmountField").value.trim(),
+      instField: $("cfgInstField").value.trim(),
+      parentField: $("cfgParentField").value.trim() || "parentId2",
+      stagePending: $("cfgStagePending").value.trim(),
+      stagePaid: $("cfgStagePaid").value.trim(),
     };
   }
 
-  function bxCall(method, params) {
-    return new Promise((resolve, reject) => {
-      BX24.callMethod(method, params, function(res) {
-        if (res.error()) {
-          reject(new Error(method + ": " + res.error() + " " + (res.error_description() || "")));
-          return;
-        }
-        resolve(res.data());
-      });
-    });
-  }
+  // ==== ALWAYS bind buttons (BX24 ga bog'liq emas) ====
+  $("btnSettings").addEventListener("click", ()=>{
+    cfgToUI(loadCfg());
+    show("settingsPanel");
+  });
 
-  function bxCallAll(method, params) {
-    return new Promise((resolve, reject) => {
-      const items = [];
-      BX24.callMethod(method, params, function(res) {
-        if (res.error()) {
-          reject(new Error(method + ": " + res.error() + " " + (res.error_description() || "")));
-          return;
-        }
-        items.push(...(res.data() || []));
-        if (res.more()) res.next();
-        else resolve(items);
-      });
-    });
-  }
+  $("btnGenerate").addEventListener("click", ()=>{
+    genErrBox.textContent = "";
+    show("genPanel");
+  });
 
-  async function getDealIdFromPlacement() {
-  // 1) placement.info() dan urinib ko‘ramiz
-  try {
-    const info = await new Promise((resolve) => BX24.placement.info(resolve));
-    const opts = (info && info.options) ? info.options : {};
+  $("btnSaveSettings").addEventListener("click", async ()=>{
+    try{
+      setError("");
+      saveCfg(uiToCfg());
+      show("");
+      entityTypeId = null;
+      await loadPaymentsToCalendar();
+    } catch(e){
+      setError(String(e.message||e));
+    }
+  });
 
-    const id =
-      opts.ID ||
-      opts.id ||
-      opts.DEAL_ID ||
-      opts.dealId ||
-      opts.ENTITY_ID ||
-      opts.entityId ||
-      (opts.ENTITY && (opts.ENTITY.ID || opts.ENTITY.id)) ||
-      null;
+  $("btnRefresh").addEventListener("click", async ()=>{
+    try{
+      setError("");
+      await loadPaymentsToCalendar();
+    } catch(e){
+      setError(String(e.message||e));
+    }
+  });
 
-    if (id) return Number(id);
-  } catch (e) {}
+  $("btnDoGenerate").addEventListener("click", async ()=>{
+    try{
+      genErrBox.textContent = "";
+      const months = Number($("genMonths").value);
+      const start = $("genStart").value.trim();
+      const total = Number($("genTotal").value);
 
-  // 2) placement.getInterface() (ba’zi portalda shu orqali keladi)
-  try {
-    const iface = await new Promise((resolve, reject) => {
-      BX24.placement.getInterface(function (res) {
-        // getInterface error bo'lishi mumkin
-        resolve(res);
-      });
-    });
+      if (!months || months < 1) throw new Error("Months noto‘g‘ri.");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(start)) throw new Error("Start date YYYY-MM-DD bo‘lsin.");
+      if (!total || total <= 0) throw new Error("Total amount noto‘g‘ri.");
 
-    // iface ichida ba’zan entityId bo‘ladi
-    if (iface && iface.ENTITY_ID) return Number(iface.ENTITY_ID);
-    if (iface && iface.entityId) return Number(iface.entityId);
-  } catch (e) {}
+      await generateSchedule(months, start, total);
+      show("");
+      await loadPaymentsToCalendar();
+    } catch(e){
+      genErrBox.textContent = String(e.message||e);
+    }
+  });
 
-  // 3) Oxirgi fallback: URL’dan /crm/deal/details/<ID>/ ni parse qilish
-  // iframe ichida location.href ko‘pincha Bitrix url bo‘ladi
-  try {
-    const href = String(window.location.href || "");
-    const m = href.match(/\/crm\/deal\/details\/(\d+)\//i);
-    if (m && m[1]) return Number(m[1]);
-  } catch (e) {}
-
-  // 4) Yana bir fallback: parent window URL (ba’zi brauzerda ishlaydi)
-  try {
-    const href = String(window.top.location.href || "");
-    const m = href.match(/\/crm\/deal\/details\/(\d+)\//i);
-    if (m && m[1]) return Number(m[1]);
-  } catch (e) {}
-
-  return null;
-}
-
-
-  async function resolveEntityTypeIdByTitle(spaTitle) {
-    const types = await bxCallAll("crm.type.list", { order: { id: "ASC" } });
-    const s = (spaTitle || "").trim().toLowerCase();
-    const found = types.find(t => ((t.title || "").trim().toLowerCase() === s));
-    if (!found) throw new Error("SPA type topilmadi: '" + spaTitle + "'. SPA nomini tekshiring.");
-    return found.entityTypeId || found.id;
-  }
-
-  function addMonths(dateStr, monthsToAdd) {
-    const [y,m,d] = dateStr.split("-").map(x => parseInt(x,10));
-    const dt = new Date(Date.UTC(y, m-1, d));
-    dt.setUTCMonth(dt.getUTCMonth() + monthsToAdd);
-    const yy = dt.getUTCFullYear();
-    const mm = String(dt.getUTCMonth()+1).padStart(2,"0");
-    const dd = String(dt.getUTCDate()).padStart(2,"0");
-    return `${yy}-${mm}-${dd}`;
-  }
-
-  function money(n) {
-    const x = Number(n);
-    if (Number.isNaN(x)) return String(n ?? "");
-    return x.toLocaleString("ru-RU");
-  }
-
-  function initCalendar() {
-    calendar = new FullCalendar.Calendar(el("calendar"), {
-      initialView: "dayGridMonth",
-      height: "auto",
-      eventClick: async function(info) {
-        try {
-          setError(""); setStatus("Marking as paid...");
+  // ==== Calendar ====
+  function initCalendar(){
+    calendar = new FullCalendar.Calendar($("calendar"), {
+      initialView:"dayGridMonth",
+      height:"auto",
+      eventClick: async (info)=>{
+        try{
+          setError("");
+          setStatus("Marking paid...");
           await markAsPaid(Number(info.event.id));
           await loadPaymentsToCalendar();
-          setStatus("Paid updated");
-        } catch (e) {
-          setError(String(e.message || e));
+          setStatus("Updated");
+        } catch(e){
+          setError(String(e.message||e));
           setStatus("");
         }
       }
@@ -290,151 +214,172 @@
     calendar.render();
   }
 
-  async function loadPaymentsToCalendar() {
-    setError("");
-    const cfg = loadCfg();
+  // ==== BX24 helpers ====
+  function ensureBX24(){
+    if (typeof BX24 === "undefined") throw new Error("BX24 not loaded. Widget Bitrix ichida ochilganini tekshiring.");
+  }
 
-    if (!dealId) throw new Error("Deal ID topilmadi (placement options).");
+  function bxCall(method, params){
+    return new Promise((resolve, reject)=>{
+      BX24.callMethod(method, params, (res)=>{
+        if (res.error()) return reject(new Error(method + ": " + res.error() + " " + (res.error_description()||"")));
+        resolve(res.data());
+      });
+    });
+  }
+
+  function bxCallAll(method, params){
+    return new Promise((resolve, reject)=>{
+      const items = [];
+      BX24.callMethod(method, params, (res)=>{
+        if (res.error()) return reject(new Error(method + ": " + res.error() + " " + (res.error_description()||"")));
+        items.push(...(res.data()||[]));
+        if (res.more()) res.next(); else resolve(items);
+      });
+    });
+  }
+
+  async function getDealId(){
+    // 1) placement.info
+    try{
+      const info = await new Promise((resolve)=>BX24.placement.info(resolve));
+      const o = (info && info.options) ? info.options : {};
+      const id = o.ID || o.id || o.DEAL_ID || o.dealId || o.ENTITY_ID || o.entityId || (o.ENTITY && (o.ENTITY.ID || o.ENTITY.id)) || null;
+      if (id) return Number(id);
+    } catch(e){}
+
+    // 2) URL parse (ko'p hollarda ishlaydi)
+    const href = String(window.location.href||"");
+    let m = href.match(/\/crm\/deal\/details\/(\d+)\//i);
+    if (m && m[1]) return Number(m[1]);
+
+    // 3) top window URL (ba'zan blok bo'ladi)
+    try{
+      const th = String(window.top.location.href||"");
+      m = th.match(/\/crm\/deal\/details\/(\d+)\//i);
+      if (m && m[1]) return Number(m[1]);
+    } catch(e){}
+
+    return null;
+  }
+
+  async function resolveEntityTypeIdByTitle(spaTitle){
+    const types = await bxCallAll("crm.type.list", { order:{ id:"ASC" } });
+    const s = (spaTitle||"").trim().toLowerCase();
+    const found = types.find(t => ((t.title||"").trim().toLowerCase() === s));
+    if (!found) throw new Error("SPA topilmadi: " + spaTitle);
+    return found.entityTypeId || found.id;
+  }
+
+  function addMonths(dateStr, n){
+    const [y,m,d] = dateStr.split("-").map(x=>parseInt(x,10));
+    const dt = new Date(Date.UTC(y,m-1,d));
+    dt.setUTCMonth(dt.getUTCMonth()+n);
+    const yy = dt.getUTCFullYear();
+    const mm = String(dt.getUTCMonth()+1).padStart(2,"0");
+    const dd = String(dt.getUTCDate()).padStart(2,"0");
+    return `${yy}-${mm}-${dd}`;
+  }
+
+  function money(v){
+    const x = Number(v);
+    if (Number.isNaN(x)) return String(v ?? "");
+    return x.toLocaleString("ru-RU");
+  }
+
+  async function loadPaymentsToCalendar(){
+    ensureBX24();
+
+    const cfg = loadCfg();
+    if (!dealId) throw new Error("Deal ID topilmadi.");
     if (!entityTypeId) entityTypeId = await resolveEntityTypeIdByTitle(cfg.spaTitle);
 
-    if (!cfg.dueField || !cfg.amountField || !cfg.instField || !cfg.stagePaid) {
-      showPanel("settingsPanel");
-      throw new Error("Settings to‘liq emas. Due/Amount/Installment field code va PAID stageId ni kiriting.");
+    if (!cfg.dueField || !cfg.amountField || !cfg.instField || !cfg.stagePaid){
+      show("settingsPanel");
+      throw new Error("Settings to‘liq emas (fields + PAID stageId).");
     }
 
-    setStatus("Loading payments...");
-
+    setStatus("Loading...");
     const filter = {};
     filter[cfg.parentField] = dealId;
 
     const items = await bxCallAll("crm.item.list", {
       entityTypeId,
       filter,
-      select: ["id","title","stageId", cfg.dueField, cfg.amountField, cfg.instField]
+      select: ["id","stageId", cfg.dueField, cfg.amountField, cfg.instField]
     });
 
-    const events = items.map(it => {
+    const events = items.map(it=>{
       const due = it[cfg.dueField];
-      const amt = it[cfg.amountField];
-      const inst = it[cfg.instField];
+      if (!due) return null;
       return {
         id: String(it.id),
-        title: `${inst || ""}  ${money(amt)}`,
-        start: due ? String(due).substring(0,10) : null,
-        allDay: true,
-        extendedProps: { stageId: it.stageId }
+        title: `${it[cfg.instField] || ""}  ${money(it[cfg.amountField])}`,
+        start: String(due).substring(0,10),
+        allDay: true
       };
-    }).filter(e => e.start);
+    }).filter(Boolean);
 
     calendar.removeAllEvents();
     calendar.addEventSource(events);
     setStatus("Loaded: " + events.length);
   }
 
-  async function markAsPaid(itemId) {
+  async function markAsPaid(itemId){
+    ensureBX24();
     const cfg = loadCfg();
-    if (!cfg.stagePaid) throw new Error("PAID stageId yo‘q (Settings).");
-    await bxCall("crm.item.update", {
-      entityTypeId,
-      id: itemId,
-      fields: { stageId: cfg.stagePaid }
-    });
+    await bxCall("crm.item.update", { entityTypeId, id:itemId, fields:{ stageId: cfg.stagePaid } });
   }
 
-  async function generateSchedule(months, startDate, totalAmount) {
+  async function generateSchedule(months, startDate, totalAmount){
+    ensureBX24();
     const cfg = loadCfg();
-    el("genErr").textContent = "";
 
-    if (!dealId) throw new Error("Deal ID topilmadi.");
-    if (!entityTypeId) entityTypeId = await resolveEntityTypeIdByTitle(cfg.spaTitle);
-
-    if (!cfg.dueField || !cfg.amountField || !cfg.instField || !cfg.stagePending) {
-      showPanel("settingsPanel");
-      throw new Error("Settings to‘liq emas. Due/Amount/Installment field code va PENDING stageId ni kiriting.");
+    if (!cfg.dueField || !cfg.amountField || !cfg.instField || !cfg.stagePending){
+      show("settingsPanel");
+      throw new Error("Settings to‘liq emas (fields + PENDING stageId).");
     }
 
-    const perMonth = Math.floor(Number(totalAmount) / Number(months));
-    const remainder = Number(totalAmount) - perMonth * Number(months);
+    const per = Math.floor(totalAmount / months);
+    const rem = totalAmount - per*months;
 
-    setStatus("Creating items...");
-
-    for (let i = 1; i <= months; i++) {
-      const due = addMonths(startDate, i-1);
-      const amt = perMonth + (i === months ? remainder : 0);
-      const inst = `${i}/${months}`;
-
+    setStatus("Creating...");
+    for (let i=1;i<=months;i++){
       const fields = {};
-      fields[cfg.dueField] = due;
-      fields[cfg.amountField] = amt;
-      fields[cfg.instField] = inst;
+      fields[cfg.dueField] = addMonths(startDate, i-1);
+      fields[cfg.amountField] = per + (i===months?rem:0);
+      fields[cfg.instField] = `${i}/${months}`;
       fields.stageId = cfg.stagePending;
       fields[cfg.parentField] = dealId;
 
       await bxCall("crm.item.add", { entityTypeId, fields });
     }
-
     setStatus("Created: " + months);
   }
 
-  // UI
-  el("btnRefresh").addEventListener("click", async () => {
-    try { await loadPaymentsToCalendar(); } catch (e) { setError(String(e.message || e)); }
-  });
+  // ==== BOOT ====
+  initCalendar();
+  cfgToUI(loadCfg());
 
-  el("btnSettings").addEventListener("click", () => {
-    cfgToUI(loadCfg());
-    showPanel("settingsPanel");
-  });
+  // BX24.init bo‘lmasa ham tugmalar ishlaydi (panel ochiladi)
+  if (typeof BX24 !== "undefined") {
+    BX24.init(async ()=>{
+      try{
+        setError("");
+        dealId = await getDealId();
+        console.log("[WIDGET] dealId =", dealId);
 
-  el("btnSaveSettings").addEventListener("click", async () => {
-    try {
-      const cfg = uiToCfg();
-      saveCfg(cfg);
-      showPanel("");
-      entityTypeId = null;
-      await loadPaymentsToCalendar();
-    } catch (e) {
-      setError(String(e.message || e));
-    }
-  });
+        if (!dealId) throw new Error("Deal ID olinmadi. placement.info options ni tekshirish kerak.");
 
-  el("btnGenerate").addEventListener("click", () => showPanel("genPanel"));
+        await loadPaymentsToCalendar();
+      } catch(e){
+        setError(String(e.message||e));
+      }
+    });
+  } else {
+    setError("BX24 script yuklanmadi (Bitrix ichida oching).");
+  }
 
-  el("btnDoGenerate").addEventListener("click", async () => {
-    try {
-      const months = Number(el("genMonths").value);
-      const start = el("genStart").value.trim();
-      const total = Number(el("genTotal").value);
-
-      if (!months || months < 1) throw new Error("Months noto‘g‘ri.");
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(start)) throw new Error("Start date formati YYYY-MM-DD bo‘lsin.");
-      if (!total || total <= 0) throw new Error("Total amount noto‘g‘ri.");
-
-      await generateSchedule(months, start, total);
-      showPanel("");
-      await loadPaymentsToCalendar();
-    } catch (e) {
-      el("genErr").textContent = String(e.message || e);
-    }
-  });
-
-  // Boot (faqat bitta init!)
-  BX24.init(async function () {
-    try {
-      setError("");
-      initCalendar();
-      cfgToUI(loadCfg());
-
-    dealId = await getDealIdFromPlacement();
-    console.log("[WIDGET] dealId =", dealId);
-
-      if (!dealId) throw new Error("Deal ID olinmadi. Tab faqat Deal ichida ishlaydi.");
-
-      await loadPaymentsToCalendar();
-    } catch (e) {
-      setError(String(e.message || e));
-    }
-  });
 })();
 </script>
 
