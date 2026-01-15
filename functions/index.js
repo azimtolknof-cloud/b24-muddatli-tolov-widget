@@ -1,24 +1,28 @@
 export async function onRequest(context) {
-  // index.html ni GET yoki POST bilan qaytarish
   const url = new URL(context.request.url);
 
-  // static asset'ni olish
-  const assetUrl = new URL("/index.html", url.origin);
+  // Static fayllarni function "intercept" qilmasin
+  if (
+    url.pathname === "/index.html" ||
+    url.pathname === "/install.html" ||
+    url.pathname === "/favicon.ico" ||
+    url.pathname.startsWith("/assets/")
+  ) {
+    return context.next();
+  }
 
-  const response = await fetch(assetUrl, {
-    method: "GET",
-    headers: {
-      "Content-Type": "text/html; charset=UTF-8",
-    },
-  });
+  // Bitrix widget ko'pincha POST bilan keladi, biz uni GET index.html ga "rewrite" qilamiz
+  if (url.pathname === "/") {
+    const rewrittenUrl = new URL("/index.html", url.origin);
 
-  return new Response(await response.text(), {
-    status: 200,
-    headers: {
-      "Content-Type": "text/html; charset=UTF-8",
-      "X-Frame-Options": "ALLOWALL",
-      "Content-Security-Policy":
-        "frame-ancestors https://*.bitrix24.kz https://*.bitrix24.com;",
-    },
-  });
+    const rewrittenRequest = new Request(rewrittenUrl.toString(), {
+      method: "GET",
+      headers: context.request.headers,
+    });
+
+    return context.next(rewrittenRequest);
+  }
+
+  // qolgan hammasi static'ga o'tsin
+  return context.next();
 }
