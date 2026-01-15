@@ -196,6 +196,8 @@
   }
 
   async function getDealIdFromPlacement() {
+  // 1) placement.info() dan urinib ko‘ramiz
+  try {
     const info = await new Promise((resolve) => BX24.placement.info(resolve));
     const opts = (info && info.options) ? info.options : {};
 
@@ -209,8 +211,41 @@
       (opts.ENTITY && (opts.ENTITY.ID || opts.ENTITY.id)) ||
       null;
 
-    return id ? Number(id) : null;
-  }
+    if (id) return Number(id);
+  } catch (e) {}
+
+  // 2) placement.getInterface() (ba’zi portalda shu orqali keladi)
+  try {
+    const iface = await new Promise((resolve, reject) => {
+      BX24.placement.getInterface(function (res) {
+        // getInterface error bo'lishi mumkin
+        resolve(res);
+      });
+    });
+
+    // iface ichida ba’zan entityId bo‘ladi
+    if (iface && iface.ENTITY_ID) return Number(iface.ENTITY_ID);
+    if (iface && iface.entityId) return Number(iface.entityId);
+  } catch (e) {}
+
+  // 3) Oxirgi fallback: URL’dan /crm/deal/details/<ID>/ ni parse qilish
+  // iframe ichida location.href ko‘pincha Bitrix url bo‘ladi
+  try {
+    const href = String(window.location.href || "");
+    const m = href.match(/\/crm\/deal\/details\/(\d+)\//i);
+    if (m && m[1]) return Number(m[1]);
+  } catch (e) {}
+
+  // 4) Yana bir fallback: parent window URL (ba’zi brauzerda ishlaydi)
+  try {
+    const href = String(window.top.location.href || "");
+    const m = href.match(/\/crm\/deal\/details\/(\d+)\//i);
+    if (m && m[1]) return Number(m[1]);
+  } catch (e) {}
+
+  return null;
+}
+
 
   async function resolveEntityTypeIdByTitle(spaTitle) {
     const types = await bxCallAll("crm.type.list", { order: { id: "ASC" } });
