@@ -8,11 +8,9 @@
   <!-- Bitrix24 JS -->
   <script src="https://api.bitrix24.com/api/v1/"></script>
 
-  <!-- FullCalendar (2 ta CDN fallback sifatida) -->
+  <!-- FullCalendar (FAqat 1 ta CDN) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
-  <link rel="stylesheet" href="https://unpkg.com/fullcalendar@6.1.15/index.global.min.css">
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
-  <script src="https://unpkg.com/fullcalendar@6.1.15/index.global.min.js"></script>
 
   <style>
     :root{
@@ -221,7 +219,7 @@
       </div>
 
       <div class="hint">
-        Siz kiritgan field/stage kodlar — SPA sozlamalaridan olinadi. Hozir sizda hammasi bor, faqat shu yerga to‘g‘ri qo‘yib saqlasangiz bo‘ldi.
+        Field/stage kodlar — SPA sozlamalaridan olinadi. Save bosilganda widget shu qiymatlar bilan ishlaydi.
       </div>
     </div>
     <div class="modalFoot">
@@ -265,7 +263,7 @@
       <div class="err" id="genErr"></div>
 
       <div class="hint">
-        Create bosilganda har oy uchun SPA item yaratiladi va Deal #ID ga bog‘lanadi.
+        Create bosilganda har oy uchun SPA item yaratiladi va Deal ID ga bog‘lanadi.
       </div>
     </div>
     <div class="modalFoot">
@@ -278,9 +276,9 @@
 <script>
 (function () {
   // =========================
-  // Helpers (NO CRASH)
+  // Helpers
   // =========================
-  const LS_KEY = "muddatli_tolov_cfg_v2";
+  const LS_KEY = "muddatli_tolov_cfg_v3";
 
   function $(id){ return document.getElementById(id); }
 
@@ -290,93 +288,65 @@
     el.textContent = value ?? "";
   }
 
-  function setError(msg){
-    setText("err", msg ? String(msg) : "");
-  }
+  function setError(msg){ setText("err", msg ? String(msg) : ""); }
+  function setStatus(msg){ setText("status", msg ? String(msg) : ""); }
 
-  function setStatus(msg){
-    setText("status", msg ? String(msg) : "");
-  }
+  function openModal(id){ const m = $(id); if (m) m.style.display = "flex"; }
+  function closeModal(id){ const m = $(id); if (m) m.style.display = "none"; }
 
-  function openModal(id){
-    const m = $(id);
-    if (!m) return;
-    m.style.display = "flex";
-  }
-
-  function closeModal(id){
-    const m = $(id);
-    if (!m) return;
-    m.style.display = "none";
-  }
-
-  function formatSo'm(n){
+  function formatSom(n){
     const x = Number(n || 0);
     if (!isFinite(x)) return "0 so'm";
     return x.toLocaleString("ru-RU") + " so'm";
   }
 
   function parseMoney(str){
-    // "10 000 000" -> 10000000
     if (str == null) return 0;
     const s = String(str).replace(/[^\d]/g, "");
     return s ? Number(s) : 0;
   }
 
   function isoDate(d){
-    // Date -> YYYY-MM-DD
     const yy = d.getFullYear();
     const mm = String(d.getMonth()+1).padStart(2,"0");
     const dd = String(d.getDate()).padStart(2,"0");
     return `${yy}-${mm}-${dd}`;
   }
 
+  function todayISO(){ return isoDate(new Date()); }
+
   function addMonths(yyyyMmDd, add){
     const [y,m,d] = yyyyMmDd.split("-").map(x=>parseInt(x,10));
     const dt = new Date(Date.UTC(y, m-1, d));
     dt.setUTCMonth(dt.getUTCMonth() + add);
-    // fix month overflow issues
-    const yy = dt.getUTCFullYear();
-    const mm = String(dt.getUTCMonth()+1).padStart(2,"0");
-    const dd = String(dt.getUTCDate()).padStart(2,"0");
-    return `${yy}-${mm}-${dd}`;
+    return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,"0")}-${String(dt.getUTCDate()).padStart(2,"0")}`;
   }
 
-  function todayISO(){
-    const now = new Date();
-    return isoDate(now);
-  }
-
-  function dateToNum(yyyyMmDd){
-    // YYYY-MM-DD -> number for compare
-    return Number(yyyyMmDd.replaceAll("-",""));
-  }
+  function dateToNum(yyyyMmDd){ return Number(String(yyyyMmDd || "").replaceAll("-","")); }
 
   // =========================
-  // Default Config (YOUR VALUES)
+  // DEFAULT CONFIG (SIZ BERGAN QIYMATLAR)
+  // MUHIM: kalitlar spaTitle/parentField/... bo'lishi shart
   // =========================
-  function defaultCfg(){
-    return {
-      spaTitle: "MUDDATLI TO'LOV",
-      parentField: "parentId2",
-      dueField: "UF_CRM_15_1768516812",
-      amountField: "UF_CRM_15_1768516945",
-      instField: "UF_CRM_15_1768516987",
-      stagePending: "DT1058_19:UC_9HOY6X",
-      stagePaid: "DT1058_19:SUCCESS",
-      yellowDays: 3
-    };
-  }
+  const DEFAULTS = {
+    spaTitle: "MUDDATLI TO'LOV",
+    parentField: "parentId2",
+    dueField: "UF_CRM_15_1768516812",
+    amountField: "UF_CRM_15_1768516945",
+    instField: "UF_CRM_15_1768516987",
+    stagePending: "DT1058_19:UC_9HOY6X",
+    stagePaid: "DT1058_19:SUCCESS",
+    yellowDays: 3
+  };
 
   function loadCfg(){
     const raw = localStorage.getItem(LS_KEY);
-    const def = defaultCfg();
-    if (!raw) return def;
+    if (!raw) return { ...DEFAULTS };
     try{
-      const obj = JSON.parse(raw);
-      return Object.assign(def, obj || {});
+      const obj = JSON.parse(raw) || {};
+      return { ...DEFAULTS, ...obj }; // DEFAULT + user
     } catch {
-      return def;
+      return { ...DEFAULTS };
     }
   }
 
@@ -406,6 +376,13 @@
       stagePaid: $("cfgStagePaid").value.trim(),
       yellowDays: Number($("cfgYellowDays").value || 0)
     };
+  }
+
+  function validateCfg(cfg){
+    const required = ["spaTitle","parentField","dueField","amountField","instField","stagePending","stagePaid"];
+    for (const k of required){
+      if (!cfg[k]) throw new Error("Settings to‘liq emas: " + k + " bo‘sh.");
+    }
   }
 
   // =========================
@@ -442,7 +419,6 @@
   async function getDealIdFromPlacement(){
     const info = await new Promise((resolve)=>BX24.placement.info(resolve));
     const opts = info && info.options ? info.options : {};
-    // turli formatlar
     const id =
       opts.ID || opts.id || opts.ENTITY_ID || opts.entityId ||
       (opts.ENTITY && (opts.ENTITY.ID || opts.ENTITY.id)) ||
@@ -461,19 +437,12 @@
   }
 
   // =========================
-  // App state
+  // State
   // =========================
   let calendar = null;
   let dealId = null;
   let entityTypeId = null;
   let currentEvents = [];
-
-  function validateCfg(cfg){
-    const required = ["spaTitle","parentField","dueField","amountField","instField","stagePending","stagePaid"];
-    for (const k of required){
-      if (!cfg[k]) throw new Error("Settings to‘liq emas: " + k + " bo‘sh.");
-    }
-  }
 
   function computeStatus(cfg, item){
     const due = String(item[cfg.dueField] || "").substring(0,10);
@@ -483,13 +452,10 @@
 
     if (paid) return "paid";
     if (!due) return "expected";
-
     if (dueN < today) return "overdue";
 
     const yellowDays = Number(cfg.yellowDays || 0);
     if (yellowDays > 0){
-      // if due is within next yellowDays
-      // simple numeric compare by date number is enough for short window, but safer use Date diff:
       const dtToday = new Date(todayISO() + "T00:00:00");
       const dtDue = new Date(due + "T00:00:00");
       const diffDays = Math.floor((dtDue - dtToday) / (1000*60*60*24));
@@ -505,9 +471,8 @@
     return "var(--blue)";
   }
 
-  function updateAnalytics(cfg){
-    let paidSum = 0, expSum = 0, overSum = 0;
-    let count = 0;
+  function updateAnalytics(){
+    let paidSum = 0, expSum = 0, overSum = 0, count = 0;
 
     for (const e of currentEvents){
       count++;
@@ -519,10 +484,10 @@
     }
     const total = paidSum + expSum + overSum;
 
-    setText("anaPaid", formatSo'm(paidSum));
-    setText("anaExpected", formatSo'm(expSum));
-    setText("anaOverdue", formatSo'm(overSum));
-    setText("anaTotal", formatSo'm(total));
+    setText("anaPaid", formatSom(paidSum));
+    setText("anaExpected", formatSom(expSum));
+    setText("anaOverdue", formatSom(overSum));
+    setText("anaTotal", formatSom(total));
     setText("anaCount", count + " ta");
 
     const pct = (v)=> total>0 ? Math.round((v/total)*100) : 0;
@@ -578,8 +543,7 @@
     calendar.removeAllEvents();
     calendar.addEventSource(events);
 
-    updateAnalytics(cfg);
-
+    updateAnalytics();
     setStatus("Loaded: " + events.length);
   }
 
@@ -653,7 +617,7 @@
 
         const right = document.createElement("span");
         right.className = "amt";
-        right.textContent = Number(amt||0).toLocaleString("ru-RU");
+        right.textContent = Number(amt||0).toLocaleString("ru-RU"); // so'm format (raqam)
 
         wrap.appendChild(left);
         wrap.appendChild(right);
@@ -665,10 +629,8 @@
         try{
           setError("");
           const st = info.event.extendedProps.status;
-          if (st === "paid"){
-            // paid bo'lsa hech narsa qilmaymiz
-            return;
-          }
+          if (st === "paid") return;
+
           const ok = confirm("Bu to‘lovni PAID qilishni xohlaysizmi?");
           if (!ok) return;
 
@@ -699,8 +661,8 @@
     }
     const per = Math.floor(total / months);
     const rem = total - per * months;
-    $("genPerMonth").value = formatSo'm(per);
-    setText("genRemainderNote", rem ? ("Oxirgi oyga qo‘shimcha: " + formatSo'm(rem)) : "");
+    $("genPerMonth").value = formatSom(per);
+    setText("genRemainderNote", rem ? ("Oxirgi oyga qo‘shimcha: " + formatSom(rem)) : "");
   }
 
   function moneyMaskInput(el){
@@ -729,6 +691,7 @@
     $("btnSaveSettings").onclick = async ()=>{
       try{
         const cfg = uiToCfg();
+        validateCfg(cfg);
         saveCfg(cfg);
         entityTypeId = null;
         closeModal("mSettings");
@@ -739,7 +702,6 @@
     };
 
     $("btnGenerate").onclick = ()=>{
-      // default start date = bugun
       $("genStart").value = todayISO();
       $("genMonths").value = "12";
       $("genTotal").value = "";
@@ -781,8 +743,9 @@
       initCalendar();
       bindButtons();
 
-      // default settingsni UIga ham tayyorlab qo'yamiz
-      cfgToUI(loadCfg());
+      // Settings default to'ldirish (siz bergan qiymatlar bilan)
+      const cfg = loadCfg();
+      cfgToUI(cfg);
 
       dealId = await getDealIdFromPlacement();
       if (!dealId) throw new Error("Deal ID olinmadi. Widget faqat Deal ichida (CRM Deal) ishlaydi.");
