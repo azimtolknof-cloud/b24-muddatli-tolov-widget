@@ -425,8 +425,8 @@
       initCalendar();
       cfgToUI(loadCfg());
 
-      dealId = await getDealIdFromPlacement();
-      console.log("[WIDGET] dealId=", dealId);
+    dealId = await getDealIdFromPlacement();
+    console.log("[WIDGET] dealId =", dealId);
 
       if (!dealId) throw new Error("Deal ID olinmadi. Tab faqat Deal ichida ishlaydi.");
 
