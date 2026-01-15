@@ -2,742 +2,796 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MUDDATLI TO'LOV</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Bitrix24 JS SDK -->
+  <!-- Bitrix24 JS -->
   <script src="https://api.bitrix24.com/api/v1/"></script>
 
-  <!-- FullCalendar -->
+  <!-- FullCalendar (2 ta CDN fallback sifatida) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/fullcalendar@6.1.15/index.global.min.css">
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+  <script src="https://unpkg.com/fullcalendar@6.1.15/index.global.min.js"></script>
 
   <style>
     :root{
-      --bg:#f5f7fb;
-      --card:#ffffff;
-      --line:#e7eaf0;
-      --text:#1f2937;
+      --bg:#f6f7f9;
+      --card:#fff;
+      --border:#e6e8ee;
+      --text:#111827;
       --muted:#6b7280;
 
-      --green:#22c55e;
+      --green:#16a34a;
       --yellow:#f59e0b;
       --red:#ef4444;
-
-      --btn:#2563eb;
-      --btnText:#fff;
+      --blue:#2563eb;
     }
-
-    html, body { height:100%; }
-    body{ margin:0; font-family: Arial, sans-serif; background: var(--bg); color: var(--text); }
+    body{ margin:0; font-family: Arial, sans-serif; background:var(--bg); color:var(--text); }
+    .wrap{ padding:14px; }
 
     .topbar{
-      display:flex; align-items:center; gap:10px;
-      padding:12px; background: var(--card);
-      border-bottom:1px solid var(--line);
-      position: sticky; top:0; z-index: 10;
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      background:var(--card); border:1px solid var(--border);
+      padding:10px; border-radius:10px;
     }
-    .btn{
-      border:1px solid #cfd6e3; background:#fff;
-      padding:8px 12px; border-radius:8px;
-      cursor:pointer; font-weight:700;
+    button{
+      border:1px solid var(--border); background:#fff; padding:7px 12px; border-radius:8px;
+      cursor:pointer; font-weight:600;
     }
-    .btn.primary{ background: var(--btn); color: var(--btnText); border-color: var(--btn); }
-    .btn:active{ transform: translateY(1px); }
+    button.primary{ background:var(--blue); color:#fff; border-color:var(--blue); }
+    button:disabled{ opacity:.6; cursor:not-allowed; }
+    .status{ margin-left:6px; color:var(--muted); font-size:13px; }
+    .err{ margin-top:10px; color:#b00; white-space:pre-wrap; font-size:13px; }
 
-    .status{ margin-left:6px; color: var(--muted); font-size: 13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-
-    .wrap{
-      padding: 12px;
+    .grid{
+      margin-top:12px;
       display:grid;
-      grid-template-columns: 1fr 380px;
-      gap: 12px;
+      grid-template-columns: 1fr 320px;
+      gap:12px;
+      align-items:start;
     }
-
     .card{
-      background: var(--card);
-      border:1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px;
-      box-sizing: border-box;
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:12px;
     }
+    #calendar{ min-height: 520px; }
 
-    #calendar{ min-height: 620px; }
-
-    .analytics h3{ margin: 0 0 10px 0; font-size: 16px; }
-    .kpi{ display:grid; grid-template-columns: 1fr; gap:10px; }
-
-    .kpiRow{
-      border:1px solid var(--line);
-      border-radius: 12px;
-      padding: 10px;
-    }
-    .kpiRow .label{
-      display:flex; align-items:center; justify-content:space-between;
-      font-size: 13px; color: var(--muted); margin-bottom: 6px;
-      font-weight: 700;
-    }
-    .kpiRow .value{ font-size: 18px; font-weight: 900; }
-
-    .barline{ height: 8px; background:#eef2ff; border-radius: 999px; overflow:hidden; margin-top:8px; }
-    .barfill{ height:100%; width:0%; }
-
-    .help{ font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.4; }
-    .err{ margin-top: 10px; color:#b91c1c; white-space: pre-wrap; font-size: 13px; }
+    .anaTitle{ font-weight:800; margin-bottom:10px; }
+    .anaBox{ border:1px solid var(--border); border-radius:10px; padding:10px; margin-bottom:10px; }
+    .anaRow{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+    .anaLabel{ color:var(--muted); font-size:13px; }
+    .anaVal{ font-weight:800; }
+    .bar{ height:8px; border-radius:999px; background:#eef2ff; overflow:hidden; margin-top:8px; }
+    .bar > div{ height:8px; width:0%; background:var(--blue); }
 
     /* Modal */
     .modalMask{
-      position: fixed; inset:0;
-      background: rgba(0,0,0,.45);
+      position:fixed; inset:0; background:rgba(17,24,39,.55);
       display:none; align-items:center; justify-content:center;
-      z-index: 999999; padding: 16px; box-sizing: border-box;
+      padding:16px; z-index:9999;
     }
     .modal{
-      width: min(900px, 100%);
-      background: var(--card);
-      border-radius: 16px;
-      border:1px solid var(--line);
-      box-shadow: 0 30px 80px rgba(0,0,0,.25);
-      overflow:hidden;
+      width:min(900px, 96vw);
+      background:#fff; border-radius:14px; overflow:hidden;
+      box-shadow:0 20px 60px rgba(0,0,0,.25);
     }
     .modalHead{
       display:flex; align-items:center; justify-content:space-between;
-      padding: 12px 14px;
-      border-bottom:1px solid var(--line);
-      font-weight: 900;
+      padding:14px 16px; border-bottom:1px solid var(--border);
+      font-weight:800;
     }
-    .modalBody{ padding: 14px; }
-    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-    .field label{
-      display:block; font-size: 12px; color: var(--muted);
-      margin-bottom: 6px; font-weight: 800;
-    }
-    .field input{
-      width:100%;
-      padding: 10px 10px;
-      border-radius: 10px;
-      border:1px solid #cfd6e3;
-      outline:none; box-sizing: border-box;
-    }
+    .modalBody{ padding:16px; }
     .modalFoot{
-      padding: 12px 14px;
-      border-top:1px solid var(--line);
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:10px;
+      display:flex; justify-content:flex-end; gap:10px;
+      padding:14px 16px; border-top:1px solid var(--border);
     }
-    .leftTools{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .rightTools{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .formGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    .field label{ display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+    .field input{
+      width:100%; box-sizing:border-box;
+      padding:10px 12px; border:1px solid var(--border); border-radius:10px;
+      outline:none;
+    }
+    .hint{ color:var(--muted); font-size:12px; margin-top:8px; }
+    .smallNote{ color:var(--muted); font-size:12px; margin-top:6px; }
 
-    /* Calendar event styles */
-    .fc .fc-daygrid-event{
-      border: none !important;
-      border-radius: 10px !important;
-      padding: 3px 6px !important;
-      font-weight: 800;
-      cursor:pointer;
+    /* FullCalendar event styles */
+    .fc .fc-toolbar-title{ font-size:18px; font-weight:900; }
+    .evt{
+      padding:2px 6px; border-radius:6px; color:#fff; font-size:12px; font-weight:800;
+      display:flex; justify-content:space-between; gap:6px;
     }
-    .evt-green{ background: rgba(34,197,94,.18) !important; color: #065f46 !important; }
-    .evt-yellow{ background: rgba(245,158,11,.20) !important; color: #92400e !important; }
-    .evt-red{ background: rgba(239,68,68,.18) !important; color: #7f1d1d !important; }
+    .evt .amt{ font-weight:900; }
   </style>
 </head>
 
 <body>
+<div class="wrap">
   <div class="topbar">
-    <button class="btn" id="btnRefresh" type="button">Refresh</button>
-    <button class="btn primary" id="btnGenerate" type="button">Generate schedule</button>
-    <button class="btn" id="btnSettings" type="button">Settings</button>
-    <div class="status" id="status">Loading...</div>
+    <button id="btnRefresh">Refresh</button>
+    <button id="btnGenerate" class="primary">Generate schedule</button>
+    <button id="btnSettings">Settings</button>
+    <span id="status" class="status"></span>
   </div>
 
-  <div class="wrap">
+  <div id="err" class="err"></div>
+
+  <div class="grid">
     <div class="card">
       <div id="calendar"></div>
-      <div class="help">
-        Ranglar: <b style="color:var(--green)">yashil</b> = to‘langan, <b style="color:var(--yellow)">sariq</b> = muddat yaqin, <b style="color:var(--red)">qizil</b> = prosrochka.
-        Event ustiga bossangiz: <b>PENDING → PAID</b> statusga o‘tadi.
-      </div>
-      <div class="err" id="mainErr"></div>
     </div>
 
-    <div class="card analytics">
-      <h3>Analitika</h3>
-      <div class="kpi">
-        <div class="kpiRow">
-          <div class="label"><span>Paid</span><span id="kpiPaidPct">0%</span></div>
-          <div class="value" id="kpiPaid">0 so‘m</div>
-          <div class="barline"><div class="barfill" id="barPaid"></div></div>
-        </div>
+    <div class="card">
+      <div class="anaTitle">Analitika</div>
 
-        <div class="kpiRow">
-          <div class="label"><span>Expected</span><span id="kpiExpectedPct">0%</span></div>
-          <div class="value" id="kpiExpected">0 so‘m</div>
-          <div class="barline"><div class="barfill" id="barExpected"></div></div>
+      <div class="anaBox">
+        <div class="anaRow">
+          <div class="anaLabel">Paid</div>
+          <div class="anaVal" id="anaPaid">0 so'm</div>
         </div>
-
-        <div class="kpiRow">
-          <div class="label"><span>Overdue</span><span id="kpiOverduePct">0%</span></div>
-          <div class="value" id="kpiOverdue">0 so‘m</div>
-          <div class="barline"><div class="barfill" id="barOverdue"></div></div>
-        </div>
-
-        <div class="kpiRow">
-          <div class="label"><span>Jami</span><span id="kpiCount">0 ta</span></div>
-          <div class="value" id="kpiTotal">0 so‘m</div>
-          <div class="help" id="kpiHint">—</div>
-        </div>
+        <div class="bar"><div id="barPaid"></div></div>
       </div>
-    </div>
-  </div>
 
-  <!-- MODAL -->
-  <div class="modalMask" id="modalMask">
-    <div class="modal">
-      <div class="modalHead">
-        <div id="modalTitle">Modal</div>
-        <button class="btn" id="btnCloseModal" type="button">Close</button>
+      <div class="anaBox">
+        <div class="anaRow">
+          <div class="anaLabel">Expected</div>
+          <div class="anaVal" id="anaExpected">0 so'm</div>
+        </div>
+        <div class="bar"><div id="barExpected"></div></div>
       </div>
-      <div class="modalBody" id="modalBody"></div>
-      <div class="modalFoot" id="modalFoot"></div>
+
+      <div class="anaBox">
+        <div class="anaRow">
+          <div class="anaLabel">Overdue</div>
+          <div class="anaVal" id="anaOverdue">0 so'm</div>
+        </div>
+        <div class="bar"><div id="barOverdue"></div></div>
+      </div>
+
+      <div class="anaBox">
+        <div class="anaRow">
+          <div class="anaLabel">Jami</div>
+          <div class="anaVal" id="anaTotal">0 so'm</div>
+        </div>
+        <div class="smallNote" id="anaCount">0 ta</div>
+      </div>
+
+      <div class="hint">
+        Ranglar: Yashil – paid, Sariq – muddat yaqin, Qizil – prosrochka.
+      </div>
     </div>
   </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modalMask" id="mSettings">
+  <div class="modal">
+    <div class="modalHead">
+      <div>Settings</div>
+      <button id="btnCloseSettings">Close</button>
+    </div>
+    <div class="modalBody">
+      <div class="formGrid">
+        <div class="field">
+          <label>SPA nomi (Title)</label>
+          <input id="cfgSpaTitle" />
+        </div>
+
+        <div class="field">
+          <label>Deal parent field</label>
+          <input id="cfgParentField" />
+        </div>
+
+        <div class="field">
+          <label>Due date field code (Date)</label>
+          <input id="cfgDueField" />
+        </div>
+
+        <div class="field">
+          <label>Amount field code (Number)</label>
+          <input id="cfgAmountField" />
+        </div>
+
+        <div class="field">
+          <label>Installment field code (String)</label>
+          <input id="cfgInstField" />
+        </div>
+
+        <div class="field">
+          <label>Sariq (muddat yaqin) – kun</label>
+          <input id="cfgYellowDays" type="number" min="0" />
+        </div>
+
+        <div class="field">
+          <label>StageId: PENDING</label>
+          <input id="cfgStagePending" />
+        </div>
+
+        <div class="field">
+          <label>StageId: PAID</label>
+          <input id="cfgStagePaid" />
+        </div>
+      </div>
+
+      <div class="hint">
+        Siz kiritgan field/stage kodlar — SPA sozlamalaridan olinadi. Hozir sizda hammasi bor, faqat shu yerga to‘g‘ri qo‘yib saqlasangiz bo‘ldi.
+      </div>
+    </div>
+    <div class="modalFoot">
+      <button id="btnCancelSettings">Cancel</button>
+      <button id="btnSaveSettings" class="primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- GENERATE MODAL -->
+<div class="modalMask" id="mGenerate">
+  <div class="modal">
+    <div class="modalHead">
+      <div>Generate schedule</div>
+      <button id="btnCloseGenerate">Close</button>
+    </div>
+    <div class="modalBody">
+      <div class="formGrid">
+        <div class="field">
+          <label>Months</label>
+          <input id="genMonths" type="number" min="1" value="12" />
+        </div>
+
+        <div class="field">
+          <label>Start date</label>
+          <input id="genStart" type="date" />
+        </div>
+
+        <div class="field">
+          <label>Total amount (so'm)</label>
+          <input id="genTotal" inputmode="numeric" placeholder="10 000 000" />
+        </div>
+
+        <div class="field">
+          <label>Har oy (auto)</label>
+          <input id="genPerMonth" disabled />
+        </div>
+      </div>
+
+      <div class="smallNote" id="genRemainderNote"></div>
+      <div class="err" id="genErr"></div>
+
+      <div class="hint">
+        Create bosilganda har oy uchun SPA item yaratiladi va Deal #ID ga bog‘lanadi.
+      </div>
+    </div>
+    <div class="modalFoot">
+      <button id="btnCancelGenerate">Cancel</button>
+      <button id="btnDoGenerate" class="primary">Create</button>
+    </div>
+  </div>
+</div>
 
 <script>
-(function(){
-  const $ = (id)=>document.getElementById(id);
-  const LS_KEY = "muddatli_tolov_cfg_final_v1";
+(function () {
+  // =========================
+  // Helpers (NO CRASH)
+  // =========================
+  const LS_KEY = "muddatli_tolov_cfg_v2";
 
-  // === DEFAULT CONFIG (siz yuborgan qiymatlar bilan) ===
-  const DEFAULT_CFG = {
-    spaTitle: "MUDDATLI TO'LOV",
-    parentField: "parentId2",
-    dueField: "UF_CRM_15_1768516812",
-    amountField: "UF_CRM_15_1768516945",
-    instField: "UF_CRM_15_1768516987",
-    stagePending: "DT1058_19:UC_9HOY6X",
-    stagePaid: "DT1058_19:SUCCESS",
-    nearDays: 3
-  };
+  function $(id){ return document.getElementById(id); }
 
-  let calendar = null;
-  let dealId = null;
-  let entityTypeId = null;
-  let itemsCache = [];
-
-  function setStatus(t){ $("status").textContent = t || ""; }
-  function setMainErr(t){ $("mainErr").textContent = t || ""; }
-
-  function moneyUZS(n){
-    const x = Number(n||0);
-    return x.toLocaleString("ru-RU") + " so‘m";
+  function setText(id, value){
+    const el = $(id);
+    if (!el) return;
+    el.textContent = value ?? "";
   }
-  function onlyDigits(s){ return String(s||"").replace(/[^\d]/g,""); }
 
-  function openModal(title, bodyHtml, footHtml){
-    $("modalTitle").textContent = title;
-    $("modalBody").innerHTML = bodyHtml || "";
-    $("modalFoot").innerHTML = footHtml || "";
-    $("modalMask").style.display = "flex";
+  function setError(msg){
+    setText("err", msg ? String(msg) : "");
   }
-  function closeModal(){
-    $("modalMask").style.display = "none";
-    $("modalTitle").textContent = "";
-    $("modalBody").innerHTML = "";
-    $("modalFoot").innerHTML = "";
+
+  function setStatus(msg){
+    setText("status", msg ? String(msg) : "");
   }
-  $("btnCloseModal").addEventListener("click", closeModal);
-  $("modalMask").addEventListener("click", (e)=>{ if(e.target.id==="modalMask") closeModal(); });
+
+  function openModal(id){
+    const m = $(id);
+    if (!m) return;
+    m.style.display = "flex";
+  }
+
+  function closeModal(id){
+    const m = $(id);
+    if (!m) return;
+    m.style.display = "none";
+  }
+
+  function formatSo'm(n){
+    const x = Number(n || 0);
+    if (!isFinite(x)) return "0 so'm";
+    return x.toLocaleString("ru-RU") + " so'm";
+  }
+
+  function parseMoney(str){
+    // "10 000 000" -> 10000000
+    if (str == null) return 0;
+    const s = String(str).replace(/[^\d]/g, "");
+    return s ? Number(s) : 0;
+  }
+
+  function isoDate(d){
+    // Date -> YYYY-MM-DD
+    const yy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    const dd = String(d.getDate()).padStart(2,"0");
+    return `${yy}-${mm}-${dd}`;
+  }
+
+  function addMonths(yyyyMmDd, add){
+    const [y,m,d] = yyyyMmDd.split("-").map(x=>parseInt(x,10));
+    const dt = new Date(Date.UTC(y, m-1, d));
+    dt.setUTCMonth(dt.getUTCMonth() + add);
+    // fix month overflow issues
+    const yy = dt.getUTCFullYear();
+    const mm = String(dt.getUTCMonth()+1).padStart(2,"0");
+    const dd = String(dt.getUTCDate()).padStart(2,"0");
+    return `${yy}-${mm}-${dd}`;
+  }
+
+  function todayISO(){
+    const now = new Date();
+    return isoDate(now);
+  }
+
+  function dateToNum(yyyyMmDd){
+    // YYYY-MM-DD -> number for compare
+    return Number(yyyyMmDd.replaceAll("-",""));
+  }
+
+  // =========================
+  // Default Config (YOUR VALUES)
+  // =========================
+  function defaultCfg(){
+    return {
+      spaTitle: "MUDDATLI TO'LOV",
+      parentField: "parentId2",
+      dueField: "UF_CRM_15_1768516812",
+      amountField: "UF_CRM_15_1768516945",
+      instField: "UF_CRM_15_1768516987",
+      stagePending: "DT1058_19:UC_9HOY6X",
+      stagePaid: "DT1058_19:SUCCESS",
+      yellowDays: 3
+    };
+  }
 
   function loadCfg(){
+    const raw = localStorage.getItem(LS_KEY);
+    const def = defaultCfg();
+    if (!raw) return def;
     try{
-      const raw = localStorage.getItem(LS_KEY);
-      if(!raw) return { ...DEFAULT_CFG };
-      return { ...DEFAULT_CFG, ...JSON.parse(raw) };
-    }catch{
-      return { ...DEFAULT_CFG };
+      const obj = JSON.parse(raw);
+      return Object.assign(def, obj || {});
+    } catch {
+      return def;
     }
   }
+
   function saveCfg(cfg){
     localStorage.setItem(LS_KEY, JSON.stringify(cfg));
   }
 
+  function cfgToUI(cfg){
+    $("cfgSpaTitle").value = cfg.spaTitle || "";
+    $("cfgParentField").value = cfg.parentField || "";
+    $("cfgDueField").value = cfg.dueField || "";
+    $("cfgAmountField").value = cfg.amountField || "";
+    $("cfgInstField").value = cfg.instField || "";
+    $("cfgStagePending").value = cfg.stagePending || "";
+    $("cfgStagePaid").value = cfg.stagePaid || "";
+    $("cfgYellowDays").value = String(cfg.yellowDays ?? 3);
+  }
+
+  function uiToCfg(){
+    return {
+      spaTitle: $("cfgSpaTitle").value.trim(),
+      parentField: $("cfgParentField").value.trim(),
+      dueField: $("cfgDueField").value.trim(),
+      amountField: $("cfgAmountField").value.trim(),
+      instField: $("cfgInstField").value.trim(),
+      stagePending: $("cfgStagePending").value.trim(),
+      stagePaid: $("cfgStagePaid").value.trim(),
+      yellowDays: Number($("cfgYellowDays").value || 0)
+    };
+  }
+
+  // =========================
+  // Bitrix REST helpers
+  // =========================
   function bxCall(method, params){
     return new Promise((resolve, reject)=>{
       BX24.callMethod(method, params, function(res){
-        if(res.error()){
-          reject(new Error(method + ": " + res.error() + " " + (res.error_description()||"")));
+        if (res.error()){
+          reject(new Error(method + ": " + res.error() + " " + (res.error_description() || "")));
           return;
         }
         resolve(res.data());
       });
     });
   }
-  function normalizeToArray(data) {
-  // Bitrix qaytarishi mumkin bo‘lgan formatlar:
-  // 1) Array: [...]
-  // 2) Object: { items: [...] }
-  // 3) Object: { types: [...] }
-  // 4) Object: { list: [...] } yoki boshqalar
-  if (!data) return [];
 
-  if (Array.isArray(data)) return data;
-
-  if (typeof data === "object") {
-    if (Array.isArray(data.items)) return data.items;
-    if (Array.isArray(data.types)) return data.types;
-    if (Array.isArray(data.list)) return data.list;
-
-    // Ba’zan bitta elementni object qilib qaytaradi:
-    // uni arrayga o‘raymiz
-    return [];
-  }
-
-  return [];
-}
-
-function bxCallAll(method, params) {
-  return new Promise((resolve, reject) => {
-    const all = [];
-
-    BX24.callMethod(method, params, function(res) {
-      if (res.error()) {
-        reject(new Error(method + ": " + res.error() + " " + (res.error_description() || "")));
-        return;
-      }
-
-      const data = res.data();
-      const chunk = normalizeToArray(data);
-
-      // Mana shu joy oldin "spread" bilan yiqilayotgan edi
-      for (const x of chunk) all.push(x);
-
-      if (res.more()) {
-        res.next();
-      } else {
-        resolve(all);
-      }
+  function bxCallAll(method, params){
+    return new Promise((resolve, reject)=>{
+      const all = [];
+      BX24.callMethod(method, params, function(res){
+        if (res.error()){
+          reject(new Error(method + ": " + res.error() + " " + (res.error_description() || "")));
+          return;
+        }
+        const data = res.data();
+        if (Array.isArray(data)) all.push(...data);
+        if (res.more()) res.next();
+        else resolve(all);
+      });
     });
-  });
-}
+  }
 
   async function getDealIdFromPlacement(){
-    const info = await new Promise((r)=>BX24.placement.info(r));
+    const info = await new Promise((resolve)=>BX24.placement.info(resolve));
     const opts = info && info.options ? info.options : {};
-    return Number(opts.ID || opts.id || opts.ENTITY_ID || opts.entityId || opts.DEAL_ID || 0) || null;
+    // turli formatlar
+    const id =
+      opts.ID || opts.id || opts.ENTITY_ID || opts.entityId ||
+      (opts.ENTITY && (opts.ENTITY.ID || opts.ENTITY.id)) ||
+      opts.DEAL_ID || null;
+    return id ? Number(id) : null;
   }
 
-  async function resolveEntityTypeIdByTitle(spaTitle){
-    const types = await bxCallAll("crm.type.list", { order: { id:"ASC" } });
-    const key = String(spaTitle||"").trim().toLowerCase();
-    const found = types.find(t => String(t.title||"").trim().toLowerCase() === key);
-    if(!found) throw new Error("SPA topilmadi: '"+spaTitle+"'. SPA nomini tekshiring.");
+  async function resolveEntityTypeIdByTitle(title){
+    const list = await bxCallAll("crm.type.list", { order: { id: "ASC" } });
+    const t = String(title || "").trim().toLowerCase();
+    const found = list.find(x => String(x.title || "").trim().toLowerCase() === t);
+    if (!found){
+      throw new Error("SPA topilmadi: crm.type.list ichida '" + title + "' yo‘q. SPA nomini tekshiring.");
+    }
     return found.entityTypeId || found.id;
   }
 
-  function parseISODate(d){
-    if(!d) return null;
-    const s = String(d).substring(0,10);
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
-    const [y,m,dd] = s.split("-").map(Number);
-    const dt = new Date(y, m-1, dd);
-    dt.setHours(0,0,0,0);
-    return dt;
+  // =========================
+  // App state
+  // =========================
+  let calendar = null;
+  let dealId = null;
+  let entityTypeId = null;
+  let currentEvents = [];
+
+  function validateCfg(cfg){
+    const required = ["spaTitle","parentField","dueField","amountField","instField","stagePending","stagePaid"];
+    for (const k of required){
+      if (!cfg[k]) throw new Error("Settings to‘liq emas: " + k + " bo‘sh.");
+    }
   }
 
-  function addMonths(dateStr, add){
-    const dt = parseISODate(dateStr);
-    if(!dt) return null;
-    const y = dt.getFullYear();
-    const m = dt.getMonth();
-    const d = dt.getDate();
-    const tmp = new Date(y, m + add, d);
-    tmp.setHours(0,0,0,0);
-    const yy = tmp.getFullYear();
-    const mm = String(tmp.getMonth()+1).padStart(2,"0");
-    const dd = String(tmp.getDate()).padStart(2,"0");
-    return `${yy}-${mm}-${dd}`;
+  function computeStatus(cfg, item){
+    const due = String(item[cfg.dueField] || "").substring(0,10);
+    const paid = item.stageId === cfg.stagePaid;
+    const today = dateToNum(todayISO());
+    const dueN = due ? dateToNum(due) : 0;
+
+    if (paid) return "paid";
+    if (!due) return "expected";
+
+    if (dueN < today) return "overdue";
+
+    const yellowDays = Number(cfg.yellowDays || 0);
+    if (yellowDays > 0){
+      // if due is within next yellowDays
+      // simple numeric compare by date number is enough for short window, but safer use Date diff:
+      const dtToday = new Date(todayISO() + "T00:00:00");
+      const dtDue = new Date(due + "T00:00:00");
+      const diffDays = Math.floor((dtDue - dtToday) / (1000*60*60*24));
+      if (diffDays <= yellowDays) return "near";
+    }
+    return "expected";
   }
 
-  function classify(it, cfg){
-    const amt = Number(it[cfg.amountField]||0);
-    const isPaid = cfg.stagePaid && it.stageId === cfg.stagePaid;
-    if(isPaid) return { cls:"evt-green", bucket:"paid", amt, isPaid:true };
-
-    const due = parseISODate(it[cfg.dueField]);
-    if(!due) return { cls:"evt-yellow", bucket:"expected", amt, isPaid:false };
-
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const diffDays = Math.floor((due.getTime()-today.getTime())/86400000);
-
-    if(diffDays < 0) return { cls:"evt-red", bucket:"overdue", amt, isPaid:false };
-    if(diffDays <= Number(cfg.nearDays||3)) return { cls:"evt-yellow", bucket:"expected", amt, isPaid:false };
-
-    return { cls:"evt-yellow", bucket:"expected", amt, isPaid:false };
+  function statusColor(st){
+    if (st === "paid") return "var(--green)";
+    if (st === "near") return "var(--yellow)";
+    if (st === "overdue") return "var(--red)";
+    return "var(--blue)";
   }
 
-  function updateAnalytics(items, cfg){
-    let paid=0, expected=0, overdue=0, total=0, count=0;
-    for(const it of items){
-      const c = classify(it,cfg);
-      count += 1;
-      total += c.amt;
-      if(c.bucket==="paid") paid += c.amt;
-      else if(c.bucket==="overdue") overdue += c.amt;
-      else expected += c.amt;
+  function updateAnalytics(cfg){
+    let paidSum = 0, expSum = 0, overSum = 0;
+    let count = 0;
+
+    for (const e of currentEvents){
+      count++;
+      const amt = Number(e.extendedProps.amount || 0);
+      const st = e.extendedProps.status;
+      if (st === "paid") paidSum += amt;
+      else if (st === "overdue") overSum += amt;
+      else expSum += amt;
+    }
+    const total = paidSum + expSum + overSum;
+
+    setText("anaPaid", formatSo'm(paidSum));
+    setText("anaExpected", formatSo'm(expSum));
+    setText("anaOverdue", formatSo'm(overSum));
+    setText("anaTotal", formatSo'm(total));
+    setText("anaCount", count + " ta");
+
+    const pct = (v)=> total>0 ? Math.round((v/total)*100) : 0;
+    $("barPaid").style.width = pct(paidSum) + "%";
+    $("barExpected").style.width = pct(expSum) + "%";
+    $("barOverdue").style.width = pct(overSum) + "%";
+  }
+
+  async function loadToCalendar(){
+    const cfg = loadCfg();
+    validateCfg(cfg);
+
+    setError("");
+    setStatus("Loading…");
+
+    if (!dealId) throw new Error("Deal ID olinmadi. Widget faqat Deal ichida ishlaydi.");
+    if (!entityTypeId) entityTypeId = await resolveEntityTypeIdByTitle(cfg.spaTitle);
+
+    const filter = {};
+    filter[cfg.parentField] = dealId;
+
+    const items = await bxCallAll("crm.item.list", {
+      entityTypeId,
+      filter,
+      select: ["id","title","stageId", cfg.dueField, cfg.amountField, cfg.instField]
+    });
+
+    const events = [];
+    for (const it of items){
+      const due = String(it[cfg.dueField] || "").substring(0,10);
+      if (!due) continue;
+
+      const amt = Number(it[cfg.amountField] || 0);
+      const inst = String(it[cfg.instField] || "");
+      const st = computeStatus(cfg, it);
+
+      events.push({
+        id: String(it.id),
+        title: inst,
+        start: due,
+        allDay: true,
+        extendedProps: {
+          amount: amt,
+          installment: inst,
+          status: st,
+          stageId: it.stageId
+        }
+      });
     }
 
-    $("kpiPaid").textContent = moneyUZS(paid);
-    $("kpiExpected").textContent = moneyUZS(expected);
-    $("kpiOverdue").textContent = moneyUZS(overdue);
-    $("kpiTotal").textContent = moneyUZS(total);
-    $("kpiCount").textContent = count + " ta";
+    currentEvents = events;
 
-    const pct = (x)=> total>0 ? Math.round((x/total)*100) : 0;
-    const pPaid = pct(paid), pExp=pct(expected), pOver=pct(overdue);
+    calendar.removeAllEvents();
+    calendar.addEventSource(events);
 
-    $("kpiPaidPct").textContent = pPaid + "%";
-    $("kpiExpectedPct").textContent = pExp + "%";
-    $("kpiOverduePct").textContent = pOver + "%";
+    updateAnalytics(cfg);
 
-    $("barPaid").style.width = pPaid + "%";
-    $("barExpected").style.width = pExp + "%";
-    $("barOverdue").style.width = pOver + "%";
+    setStatus("Loaded: " + events.length);
+  }
 
-    $("barPaid").style.background = "var(--green)";
-    $("barExpected").style.background = "var(--yellow)";
-    $("barOverdue").style.background = "var(--red)";
+  async function markPaid(itemId){
+    const cfg = loadCfg();
+    validateCfg(cfg);
+    if (!entityTypeId) entityTypeId = await resolveEntityTypeIdByTitle(cfg.spaTitle);
 
-    $("kpiHint").textContent = `Deal #${dealId}. nearDays=${cfg.nearDays}.`;
+    await bxCall("crm.item.update", {
+      entityTypeId,
+      id: Number(itemId),
+      fields: { stageId: cfg.stagePaid }
+    });
+  }
+
+  async function generateSchedule(){
+    const cfg = loadCfg();
+    validateCfg(cfg);
+
+    const months = Number($("genMonths").value || 0);
+    const start = $("genStart").value; // YYYY-MM-DD
+    const total = parseMoney($("genTotal").value);
+
+    if (!months || months < 1) throw new Error("Months noto‘g‘ri.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start)) throw new Error("Start date noto‘g‘ri.");
+    if (!total || total <= 0) throw new Error("Total amount noto‘g‘ri.");
+    if (!dealId) throw new Error("Deal ID yo‘q.");
+
+    if (!entityTypeId) entityTypeId = await resolveEntityTypeIdByTitle(cfg.spaTitle);
+
+    setStatus("Creating items…");
+
+    const per = Math.floor(total / months);
+    const rem = total - per * months;
+
+    for (let i=1; i<=months; i++){
+      const due = addMonths(start, i-1);
+      const amt = per + (i === months ? rem : 0);
+      const inst = `${i}/${months}`;
+
+      const fields = {};
+      fields[cfg.dueField] = due;
+      fields[cfg.amountField] = amt;
+      fields[cfg.instField] = inst;
+      fields.stageId = cfg.stagePending;
+      fields[cfg.parentField] = dealId;
+
+      await bxCall("crm.item.add", { entityTypeId, fields });
+    }
+
+    setStatus("Created: " + months);
   }
 
   function initCalendar(){
     calendar = new FullCalendar.Calendar($("calendar"), {
       initialView: "dayGridMonth",
       height: "auto",
-      headerToolbar: { left:"prev,next today", center:"title", right:"" },
-      eventClick: async (info)=>{
+      headerToolbar: { left: "prev,next today", center: "title", right: "" },
+
+      eventContent: function(arg){
+        const st = arg.event.extendedProps.status;
+        const amt = arg.event.extendedProps.amount;
+        const inst = arg.event.extendedProps.installment || arg.event.title;
+
+        const wrap = document.createElement("div");
+        wrap.className = "evt";
+        wrap.style.background = statusColor(st);
+
+        const left = document.createElement("span");
+        left.textContent = inst;
+
+        const right = document.createElement("span");
+        right.className = "amt";
+        right.textContent = Number(amt||0).toLocaleString("ru-RU");
+
+        wrap.appendChild(left);
+        wrap.appendChild(right);
+
+        return { domNodes: [wrap] };
+      },
+
+      eventClick: async function(info){
         try{
-          const cfg = loadCfg();
-          const itemId = Number(info.event.id);
-          const isPaid = !!(info.event.extendedProps && info.event.extendedProps.isPaid);
+          setError("");
+          const st = info.event.extendedProps.status;
+          if (st === "paid"){
+            // paid bo'lsa hech narsa qilmaymiz
+            return;
+          }
+          const ok = confirm("Bu to‘lovni PAID qilishni xohlaysizmi?");
+          if (!ok) return;
 
-          if(isPaid) return; // allaqachon PAID bo‘lsa tegmaymiz
-
-          if(!cfg.stagePaid) return alert("Settings: STAGE_PAID yo‘q");
-
-          setStatus("Marking PAID...");
-          await bxCall("crm.item.update", {
-            entityTypeId,
-            id: itemId,
-            fields: { stageId: cfg.stagePaid }
-          });
-
-          await refreshAll();
+          setStatus("Updating…");
+          await markPaid(info.event.id);
+          await loadToCalendar();
           setStatus("Updated");
-        }catch(e){
-          alert(String(e.message||e));
+        } catch(e){
           setStatus("");
+          setError(e?.message || String(e));
         }
       }
     });
+
     calendar.render();
   }
 
-  async function loadItemsForDeal(){
-    const cfg = loadCfg();
-
-    if(!dealId) throw new Error("Deal ID topilmadi. Widget deal ichida ochilishi shart.");
-    if(!entityTypeId) entityTypeId = await resolveEntityTypeIdByTitle(cfg.spaTitle);
-
-    const required = ["parentField","dueField","amountField","instField","stagePending","stagePaid"];
-    for(const k of required){
-      if(!cfg[k]) throw new Error("Settings to‘liq emas: " + k);
+  // =========================
+  // UI wiring
+  // =========================
+  function recalcGeneratePreview(){
+    const months = Number($("genMonths").value || 0);
+    const total = parseMoney($("genTotal").value);
+    if (!months || months < 1 || !total){
+      $("genPerMonth").value = "";
+      setText("genRemainderNote", "");
+      return;
     }
+    const per = Math.floor(total / months);
+    const rem = total - per * months;
+    $("genPerMonth").value = formatSo'm(per);
+    setText("genRemainderNote", rem ? ("Oxirgi oyga qo‘shimcha: " + formatSo'm(rem)) : "");
+  }
 
-    const filter = {};
-    filter[cfg.parentField] = dealId;
-
-    const select = ["id","title","stageId", cfg.dueField, cfg.amountField, cfg.instField];
-    const items = await bxCallAll("crm.item.list", {
-      entityTypeId,
-      filter,
-      select,
-      order: { "id":"ASC" }
+  function moneyMaskInput(el){
+    el.addEventListener("input", ()=>{
+      const n = parseMoney(el.value);
+      el.value = n ? n.toLocaleString("ru-RU") : "";
+      recalcGeneratePreview();
     });
-
-    itemsCache = items;
-    return items;
   }
 
-  function renderCalendar(items){
-    const cfg = loadCfg();
-    const events = items.map(it=>{
-      const due = String(it[cfg.dueField]||"").substring(0,10);
-      if(!due) return null;
+  function bindButtons(){
+    $("btnRefresh").onclick = async ()=>{
+      try{ setError(""); await loadToCalendar(); }
+      catch(e){ setError(e?.message || String(e)); }
+    };
 
-      const c = classify(it,cfg);
-      const inst = it[cfg.instField] || "";
-      const amt = Number(it[cfg.amountField]||0);
+    $("btnSettings").onclick = ()=>{
+      const cfg = loadCfg();
+      cfgToUI(cfg);
+      openModal("mSettings");
+    };
 
-      return {
-        id: String(it.id),
-        title: `${inst} • ${moneyUZS(amt)}`,
-        start: due,
-        allDay: true,
-        classNames: [c.cls],
-        extendedProps: { isPaid: c.isPaid }
-      };
-    }).filter(Boolean);
+    $("btnCloseSettings").onclick = ()=>closeModal("mSettings");
+    $("btnCancelSettings").onclick = ()=>closeModal("mSettings");
 
-    calendar.removeAllEvents();
-    calendar.addEventSource(events);
-  }
-
-  async function refreshAll(){
-    setMainErr("");
-    const cfg = loadCfg();
-    setStatus("Loading...");
-    const items = await loadItemsForDeal();
-    renderCalendar(items);
-    updateAnalytics(items, cfg);
-    setStatus("Loaded: " + items.length);
-  }
-
-  function openSettings(){
-    const cfg = loadCfg();
-    openModal(
-      "Settings",
-      `
-        <div class="grid2">
-          <div class="field">
-            <label>SPA_NAME</label>
-            <input id="s_spaTitle" value="${cfg.spaTitle.replace(/"/g,'&quot;')}">
-          </div>
-          <div class="field">
-            <label>PARENT_FIELD</label>
-            <input id="s_parentField" value="${cfg.parentField.replace(/"/g,'&quot;')}">
-          </div>
-
-          <div class="field">
-            <label>DUE_DATE_FIELD</label>
-            <input id="s_dueField" value="${cfg.dueField.replace(/"/g,'&quot;')}">
-          </div>
-          <div class="field">
-            <label>AMOUNT_FIELD</label>
-            <input id="s_amountField" value="${cfg.amountField.replace(/"/g,'&quot;')}">
-          </div>
-
-          <div class="field">
-            <label>INSTALLMENT_FIELD</label>
-            <input id="s_instField" value="${cfg.instField.replace(/"/g,'&quot;')}">
-          </div>
-          <div class="field">
-            <label>Sariq (yaqin) – kun</label>
-            <input id="s_nearDays" type="number" min="0" value="${Number(cfg.nearDays||3)}">
-          </div>
-
-          <div class="field">
-            <label>STAGE_PENDING</label>
-            <input id="s_stagePending" value="${cfg.stagePending.replace(/"/g,'&quot;')}">
-          </div>
-          <div class="field">
-            <label>STAGE_PAID</label>
-            <input id="s_stagePaid" value="${cfg.stagePaid.replace(/"/g,'&quot;')}">
-          </div>
-        </div>
-
-        <div class="help">
-          Siz yuborgan qiymatlar allaqachon default sifatida turibdi. Kerak bo‘lsa shu yerdan o‘zgartirib Save qiling.
-        </div>
-
-        <div class="err" id="s_err"></div>
-      `,
-      `
-        <div class="leftTools">
-          <button class="btn" id="s_reset" type="button">Reset defaults</button>
-        </div>
-        <div class="rightTools">
-          <button class="btn" id="s_cancel" type="button">Cancel</button>
-          <button class="btn primary" id="s_save" type="button">Save</button>
-        </div>
-      `
-    );
-
-    $("s_cancel").onclick = closeModal;
-
-    $("s_reset").onclick = async ()=>{
+    $("btnSaveSettings").onclick = async ()=>{
       try{
-        saveCfg({ ...DEFAULT_CFG });
+        const cfg = uiToCfg();
+        saveCfg(cfg);
         entityTypeId = null;
-        closeModal();
-        await refreshAll();
-      }catch(e){
-        $("s_err").textContent = String(e.message||e);
+        closeModal("mSettings");
+        await loadToCalendar();
+      } catch(e){
+        setError(e?.message || String(e));
       }
     };
 
-    $("s_save").onclick = async ()=>{
+    $("btnGenerate").onclick = ()=>{
+      // default start date = bugun
+      $("genStart").value = todayISO();
+      $("genMonths").value = "12";
+      $("genTotal").value = "";
+      $("genPerMonth").value = "";
+      setText("genRemainderNote", "");
+      setText("genErr", "");
+      openModal("mGenerate");
+    };
+
+    $("btnCloseGenerate").onclick = ()=>closeModal("mGenerate");
+    $("btnCancelGenerate").onclick = ()=>closeModal("mGenerate");
+
+    $("btnDoGenerate").onclick = async ()=>{
       try{
-        const next = {
-          spaTitle: $("s_spaTitle").value.trim(),
-          parentField: $("s_parentField").value.trim(),
-          dueField: $("s_dueField").value.trim(),
-          amountField: $("s_amountField").value.trim(),
-          instField: $("s_instField").value.trim(),
-          stagePending: $("s_stagePending").value.trim(),
-          stagePaid: $("s_stagePaid").value.trim(),
-          nearDays: Number($("s_nearDays").value || 3)
-        };
-
-        for(const k of ["spaTitle","parentField","dueField","amountField","instField","stagePending","stagePaid"]){
-          if(!next[k]) throw new Error("Bo‘sh qoldi: " + k);
-        }
-
-        saveCfg(next);
-        entityTypeId = null; // qayta topilsin
-        closeModal();
-        await refreshAll();
-      }catch(e){
-        $("s_err").textContent = String(e.message||e);
+        setText("genErr", "");
+        $("btnDoGenerate").disabled = true;
+        await generateSchedule();
+        closeModal("mGenerate");
+        await loadToCalendar();
+      } catch(e){
+        setText("genErr", e?.message || String(e));
+      } finally {
+        $("btnDoGenerate").disabled = false;
       }
     };
+
+    $("genMonths").addEventListener("input", recalcGeneratePreview);
+    moneyMaskInput($("genTotal"));
   }
 
-  function openGenerate(){
-    const cfg = loadCfg();
-    const today = new Date();
-    const y = today.getFullYear();
-    const m = String(today.getMonth()+1).padStart(2,"0");
-    const d = String(today.getDate()).padStart(2,"0");
-    const defaultDate = `${y}-${m}-${d}`;
-
-    openModal(
-      "Generate schedule",
-      `
-        <div class="grid2">
-          <div class="field">
-            <label>Months</label>
-            <input id="g_months" type="number" min="1" value="12">
-          </div>
-          <div class="field">
-            <label>Start date</label>
-            <input id="g_start" type="date" value="${defaultDate}">
-          </div>
-
-          <div class="field">
-            <label>Total amount (so‘m)</label>
-            <input id="g_total" inputmode="numeric" placeholder="10000000">
-          </div>
-          <div class="field">
-            <label>Har oy (auto)</label>
-            <input id="g_perMonth" disabled value="0 so‘m">
-          </div>
-        </div>
-
-        <div class="help">
-          Create bosilganda: har oy uchun SPA item yaratiladi (Deal #${dealId} ga bog‘lanadi).<br>
-          Summalar: so‘m formatda; oxirgi oyga remainder qo‘shiladi.
-        </div>
-
-        <div class="err" id="g_err"></div>
-      `,
-      `
-        <div class="leftTools">
-          <button class="btn" id="g_cancel" type="button">Cancel</button>
-        </div>
-        <div class="rightTools">
-          <button class="btn primary" id="g_create" type="button">Create</button>
-        </div>
-      `
-    );
-
-    function recalc(){
-      const months = Number($("g_months").value||0);
-      const total = Number(onlyDigits($("g_total").value)||0);
-      if(months>0 && total>0){
-        $("g_perMonth").value = moneyUZS(Math.floor(total/months));
-      }else{
-        $("g_perMonth").value = "0 so‘m";
-      }
-    }
-
-    $("g_total").addEventListener("input", ()=>{
-      const v = onlyDigits($("g_total").value);
-      $("g_total").value = v ? v : "";
-      recalc();
-    });
-    $("g_months").addEventListener("input", recalc);
-
-    $("g_cancel").onclick = closeModal;
-
-    $("g_create").onclick = async ()=>{
-      try{
-        $("g_err").textContent = "";
-        const cfg2 = loadCfg();
-
-        const months = Number($("g_months").value||0);
-        const start = $("g_start").value;
-        const total = Number(onlyDigits($("g_total").value)||0);
-
-        if(!(months>=1)) throw new Error("Months noto‘g‘ri.");
-        if(!/^\d{4}-\d{2}-\d{2}$/.test(start)) throw new Error("Start date noto‘g‘ri.");
-        if(!(total>0)) throw new Error("Total amount noto‘g‘ri.");
-
-        if(!entityTypeId) entityTypeId = await resolveEntityTypeIdByTitle(cfg2.spaTitle);
-
-        const per = Math.floor(total/months);
-        const rem = total - per*months;
-
-        setStatus("Creating items...");
-        // yaratishda barqaror: ketma-ket
-        for(let i=1;i<=months;i++){
-          const due = addMonths(start, i-1);
-          const amt = per + (i===months ? rem : 0);
-          const inst = `${i}/${months}`;
-
-          const fields = {};
-          fields[cfg2.dueField] = due;
-          fields[cfg2.amountField] = amt;
-          fields[cfg2.instField] = inst;
-          fields.stageId = cfg2.stagePending;
-          fields[cfg2.parentField] = dealId;
-
-          await bxCall("crm.item.add", { entityTypeId, fields });
-        }
-
-        closeModal();
-        await refreshAll();
-        setStatus("Created: " + months);
-      }catch(e){
-        $("g_err").textContent = String(e.message||e);
-        setStatus("");
-      }
-    };
-
-    recalc();
-  }
-
-  // UI buttons
-  $("btnSettings").addEventListener("click", openSettings);
-  $("btnGenerate").addEventListener("click", openGenerate);
-  $("btnRefresh").addEventListener("click", async ()=>{
-    try{ await refreshAll(); }catch(e){ alert(String(e.message||e)); }
-  });
-
+  // =========================
   // Boot
+  // =========================
   BX24.init(async function(){
     try{
+      setError("");
+      setStatus("Init…");
+
       initCalendar();
+      bindButtons();
+
+      // default settingsni UIga ham tayyorlab qo'yamiz
+      cfgToUI(loadCfg());
+
       dealId = await getDealIdFromPlacement();
-      if(!dealId) throw new Error("Deal ID olinmadi. Widget faqat Deal ichida ishlaydi.");
-      await refreshAll();
-    }catch(e){
-      setMainErr(String(e.message||e));
-      setStatus("Error");
+      if (!dealId) throw new Error("Deal ID olinmadi. Widget faqat Deal ichida (CRM Deal) ishlaydi.");
+
+      await loadToCalendar();
+      setStatus("Ready");
+    } catch(e){
+      setStatus("");
+      setError(e?.message || String(e));
     }
   });
 
