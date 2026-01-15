@@ -355,22 +355,18 @@
   // =========================
   // Default Config (YOUR VALUES)
   // =========================
-  function defaultCfg(){
-    return {
-      spaTitle: "MUDDATLI TO'LOV",
-      parentField: "parentId2",
-      dueField: "UF_CRM_15_1768516812",
-      amountField: "UF_CRM_15_1768516945",
-      instField: "UF_CRM_15_1768516987",
-      stagePending: "DT1058_19:UC_9HOY6X",
-      stagePaid: "DT1058_19:SUCCESS",
-      yellowDays: 3
-    };
-  }
-
+  const DEFAULTS = {
+  SPA_NAME: "MUDDATLI TO'LOV",
+  PARENT_FIELD: "parentId2",
+  DUE_DATE_FIELD: "UF_CRM_15_1768516812",
+  AMOUNT_FIELD: "UF_CRM_15_1768516945",
+  INSTALLMENT_FIELD: "UF_CRM_15_1768516987",
+  STAGE_PENDING: "DT1058_19:UC_9HOY6X",
+  STAGE_PAID: "DT1058_19:SUCCESS"
+};
   function loadCfg(){
     const raw = localStorage.getItem(LS_KEY);
-    const def = defaultCfg();
+    const def = DEFAULTS;
     if (!raw) return def;
     try{
       const obj = JSON.parse(raw);
