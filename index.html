@@ -2,26 +2,27 @@
 <html>
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MUDDATLI TO'LOV</title>
 
+  <!-- Bitrix24 JS API -->
   <script src="https://api.bitrix24.com/api/v1/"></script>
 
-  <!-- FullCalendar (minimal) -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
+  <!-- FullCalendar -->
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    html, body { height:100%; margin:0; padding:0; font-family: Arial, sans-serif; }
     .bar { display:flex; gap:8px; align-items:center; padding:10px; border-bottom:1px solid #eee; }
     .bar button { padding:6px 10px; cursor:pointer; }
-    .bar input { padding:6px 8px; width: 120px; }
-    #calendar { padding: 10px; }
-    .panel { padding: 10px; border-top:1px solid #eee; display:none; }
-    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:8px; }
-    .row label { min-width: 200px; }
-    .row input { padding:6px 8px; width: 260px; }
     .hint { color:#666; font-size: 12px; }
-    .err { color:#b00; white-space: pre-wrap; }
+    .err { color:#b00; white-space: pre-wrap; padding: 10px; }
+    #calendar { padding: 10px; }
+    .panel { padding: 10px; border-top:1px solid #eee; display:none; background:#fafafa; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:8px; }
+    .row label { min-width: 220px; }
+    .row input { padding:6px 8px; width: 320px; }
+    .row small { color:#666; }
   </style>
 </head>
 <body>
@@ -41,53 +42,48 @@
     <div class="row">
       <label>SPA nomi (Title):</label>
       <input id="cfgSpaTitle" placeholder="MUDDATLI TO'LOV" />
-      <span class="hint">SPA nomi bilan entityTypeId topiladi</span>
+      <small>CRM.type.list ichidan title bo‘yicha topiladi</small>
     </div>
 
     <div class="row">
       <label>Due date field code:</label>
       <input id="cfgDueField" placeholder="ufCrmXX_DUE_DATE" />
-      <span class="hint">SPA field kod (Date)</span>
+      <small>Date field code</small>
     </div>
 
     <div class="row">
       <label>Amount field code:</label>
       <input id="cfgAmountField" placeholder="ufCrmXX_AMOUNT" />
-      <span class="hint">SPA field kod (Number)</span>
+      <small>Number field code</small>
     </div>
 
     <div class="row">
       <label>Installment field code:</label>
       <input id="cfgInstField" placeholder="ufCrmXX_INSTALLMENT" />
-      <span class="hint">Masalan: "3/12"</span>
+      <small>Masalan: 3/12</small>
     </div>
 
     <div class="row">
-      <label>Deal parent field (default):</label>
+      <label>Deal parent field:</label>
       <input id="cfgParentField" placeholder="parentId2" />
-      <span class="hint">Deal uchun odatda parentId2</span>
+      <small>Deal uchun odatda parentId2</small>
     </div>
 
     <div class="row">
       <label>StageId: PENDING:</label>
       <input id="cfgStagePending" placeholder="DTXXX:NEW" />
-      <span class="hint">SPA kanban stageId</span>
+      <small>SPA kanban stageId</small>
     </div>
 
     <div class="row">
       <label>StageId: PAID:</label>
       <input id="cfgStagePaid" placeholder="DTXXX:SUCCESS" />
-      <span class="hint">Event bosilganda shu stagega o‘tadi</span>
+      <small>Event bosilganda shu stagega o‘tadi</small>
     </div>
 
     <div class="row">
       <button id="btnSaveSettings">Save</button>
-      <span class="hint">Saqlanadi: browser localStorage</span>
-    </div>
-
-    <div class="hint">
-      Qayerdan olasiz? SPA ichida field’ni ochsangiz, “Kod/Code” ko‘rinadi.
-      StageId’ni SPA Kanban stage sozlamalaridan olasiz (yoki REST orqali).
+      <small>browser localStorage’da saqlanadi</small>
     </div>
   </div>
 
@@ -107,7 +103,7 @@
     </div>
     <div class="row">
       <button id="btnDoGenerate">Create items</button>
-      <span class="hint">Har oy uchun SPA item yaratadi</span>
+      <small>Har oy uchun SPA item yaratadi</small>
     </div>
     <div class="err" id="genErr"></div>
   </div>
@@ -116,7 +112,7 @@
 
 <script>
 (function () {
-  const LS_KEY = "muddatli_tolov_cfg_v1";
+  const LS_KEY = "muddatli_tolov_cfg_v2";
 
   const el = (id) => document.getElementById(id);
   const errBox = el("err");
@@ -129,8 +125,11 @@
   function setStatus(msg) { statusBox.textContent = msg || ""; }
   function setError(msg) { errBox.textContent = msg || ""; }
 
+  function showPanel(panelId) {
+    ["settingsPanel","genPanel"].forEach(id => el(id).style.display = (id === panelId ? "block" : "none"));
+  }
+
   function loadCfg() {
-    const raw = localStorage.getItem(LS_KEY);
     const def = {
       spaTitle: "MUDDATLI TO'LOV",
       dueField: "",
@@ -140,13 +139,12 @@
       stagePending: "",
       stagePaid: ""
     };
+    const raw = localStorage.getItem(LS_KEY);
     if (!raw) return def;
     try { return Object.assign(def, JSON.parse(raw)); } catch { return def; }
   }
 
-  function saveCfg(cfg) {
-    localStorage.setItem(LS_KEY, JSON.stringify(cfg));
-  }
+  function saveCfg(cfg) { localStorage.setItem(LS_KEY, JSON.stringify(cfg)); }
 
   function cfgToUI(cfg) {
     el("cfgSpaTitle").value = cfg.spaTitle || "";
@@ -170,10 +168,6 @@
     };
   }
 
-  function showPanel(panelId) {
-    ["settingsPanel","genPanel"].forEach(id => el(id).style.display = (id === panelId ? "block" : "none"));
-  }
-
   function bxCall(method, params) {
     return new Promise((resolve, reject) => {
       BX24.callMethod(method, params, function(res) {
@@ -187,7 +181,6 @@
   }
 
   function bxCallAll(method, params) {
-    // paginated list uchun
     return new Promise((resolve, reject) => {
       const items = [];
       BX24.callMethod(method, params, function(res) {
@@ -196,37 +189,41 @@
           return;
         }
         items.push(...(res.data() || []));
-        if (res.more()) {
-          res.next();
-        } else {
-          resolve(items);
-        }
+        if (res.more()) res.next();
+        else resolve(items);
       });
     });
   }
 
   async function getDealIdFromPlacement() {
-    // placement options format turlicha bo‘lishi mumkin, defensively
     const info = await new Promise((resolve) => BX24.placement.info(resolve));
     const opts = (info && info.options) ? info.options : {};
-    return opts.ID || opts.id || opts.ENTITY_ID || opts.entityId || opts.DEAL_ID || null;
+
+    const id =
+      opts.ID ||
+      opts.id ||
+      opts.DEAL_ID ||
+      opts.dealId ||
+      opts.ENTITY_ID ||
+      opts.entityId ||
+      (opts.ENTITY && (opts.ENTITY.ID || opts.ENTITY.id)) ||
+      null;
+
+    return id ? Number(id) : null;
   }
 
   async function resolveEntityTypeIdByTitle(spaTitle) {
-    // CRM types ro‘yxati ichidan title bo‘yicha topamiz
     const types = await bxCallAll("crm.type.list", { order: { id: "ASC" } });
-    const found = types.find(t => (t.title || "").trim().toLowerCase() === spaTitle.trim().toLowerCase());
-    if (!found) throw new Error("SPA type topilmadi. CRM.type.list ichida '"+spaTitle+"' yo‘q. SPA nomini tekshiring.");
-    return found.entityTypeId || found.id; // ba’zi portallarda entityTypeId, ba’zida id
+    const s = (spaTitle || "").trim().toLowerCase();
+    const found = types.find(t => ((t.title || "").trim().toLowerCase() === s));
+    if (!found) throw new Error("SPA type topilmadi: '" + spaTitle + "'. SPA nomini tekshiring.");
+    return found.entityTypeId || found.id;
   }
 
   function addMonths(dateStr, monthsToAdd) {
-    // dateStr: YYYY-MM-DD
     const [y,m,d] = dateStr.split("-").map(x => parseInt(x,10));
     const dt = new Date(Date.UTC(y, m-1, d));
-    const newM = dt.getUTCMonth() + monthsToAdd;
-    dt.setUTCMonth(newM);
-    // ISO YYYY-MM-DD
+    dt.setUTCMonth(dt.getUTCMonth() + monthsToAdd);
     const yy = dt.getUTCFullYear();
     const mm = String(dt.getUTCMonth()+1).padStart(2,"0");
     const dd = String(dt.getUTCDate()).padStart(2,"0");
@@ -234,10 +231,28 @@
   }
 
   function money(n) {
-    if (n === null || n === undefined || n === "") return "";
     const x = Number(n);
-    if (Number.isNaN(x)) return String(n);
+    if (Number.isNaN(x)) return String(n ?? "");
     return x.toLocaleString("ru-RU");
+  }
+
+  function initCalendar() {
+    calendar = new FullCalendar.Calendar(el("calendar"), {
+      initialView: "dayGridMonth",
+      height: "auto",
+      eventClick: async function(info) {
+        try {
+          setError(""); setStatus("Marking as paid...");
+          await markAsPaid(Number(info.event.id));
+          await loadPaymentsToCalendar();
+          setStatus("Paid updated");
+        } catch (e) {
+          setError(String(e.message || e));
+          setStatus("");
+        }
+      }
+    });
+    calendar.render();
   }
 
   async function loadPaymentsToCalendar() {
@@ -253,6 +268,7 @@
     }
 
     setStatus("Loading payments...");
+
     const filter = {};
     filter[cfg.parentField] = dealId;
 
@@ -266,17 +282,12 @@
       const due = it[cfg.dueField];
       const amt = it[cfg.amountField];
       const inst = it[cfg.instField];
-      const isPaid = (it.stageId === cfg.stagePaid);
-
       return {
         id: String(it.id),
         title: `${inst || ""}  ${money(amt)}`,
         start: due ? String(due).substring(0,10) : null,
         allDay: true,
-        extendedProps: {
-          stageId: it.stageId,
-          isPaid
-        }
+        extendedProps: { stageId: it.stageId }
       };
     }).filter(e => e.start);
 
@@ -307,12 +318,12 @@
       throw new Error("Settings to‘liq emas. Due/Amount/Installment field code va PENDING stageId ni kiriting.");
     }
 
-    // mavjudlarini tekshirish (xohlasangiz o‘chirib qayta yaratish ham qo‘shiladi)
     const perMonth = Math.floor(Number(totalAmount) / Number(months));
     const remainder = Number(totalAmount) - perMonth * Number(months);
 
     setStatus("Creating items...");
-    for (let i=1; i<=months; i++) {
+
+    for (let i = 1; i <= months; i++) {
       const due = addMonths(startDate, i-1);
       const amt = perMonth + (i === months ? remainder : 0);
       const inst = `${i}/${months}`;
@@ -322,44 +333,21 @@
       fields[cfg.amountField] = amt;
       fields[cfg.instField] = inst;
       fields.stageId = cfg.stagePending;
-
-      // Deal bilan bog‘lash
       fields[cfg.parentField] = dealId;
 
       await bxCall("crm.item.add", { entityTypeId, fields });
     }
+
     setStatus("Created: " + months);
   }
 
-  function initCalendar() {
-    const calEl = el("calendar");
-    calendar = new FullCalendar.Calendar(calEl, {
-      initialView: "dayGridMonth",
-      height: "auto",
-      eventClick: async function(info) {
-        try {
-          setError("");
-          setStatus("Marking as paid...");
-          await markAsPaid(Number(info.event.id));
-          await loadPaymentsToCalendar();
-          setStatus("Paid updated");
-        } catch (e) {
-          setError(String(e.message || e));
-          setStatus("");
-        }
-      }
-    });
-    calendar.render();
-  }
-
-  // UI events
+  // UI
   el("btnRefresh").addEventListener("click", async () => {
-    try { await loadPaymentsToCalendar(); } catch (e) { setError(String(e.message||e)); }
+    try { await loadPaymentsToCalendar(); } catch (e) { setError(String(e.message || e)); }
   });
 
   el("btnSettings").addEventListener("click", () => {
-    const cfg = loadCfg();
-    cfgToUI(cfg);
+    cfgToUI(loadCfg());
     showPanel("settingsPanel");
   });
 
@@ -367,17 +355,15 @@
     try {
       const cfg = uiToCfg();
       saveCfg(cfg);
-      showPanel(""); // hide all
-      entityTypeId = null; // recalc
+      showPanel("");
+      entityTypeId = null;
       await loadPaymentsToCalendar();
     } catch (e) {
       setError(String(e.message || e));
     }
   });
 
-  el("btnGenerate").addEventListener("click", () => {
-    showPanel("genPanel");
-  });
+  el("btnGenerate").addEventListener("click", () => showPanel("genPanel"));
 
   el("btnDoGenerate").addEventListener("click", async () => {
     try {
@@ -397,15 +383,17 @@
     }
   });
 
-  // Boot
+  // Boot (faqat bitta init!)
   BX24.init(async function () {
     try {
+      setError("");
       initCalendar();
-      const cfg = loadCfg();
-      cfgToUI(cfg);
+      cfgToUI(loadCfg());
 
       dealId = await getDealIdFromPlacement();
-      if (!dealId) throw new Error("Deal ID olinmadi. Bu tab faqat Deal ichida ishlaydi.");
+      console.log("[WIDGET] dealId=", dealId);
+
+      if (!dealId) throw new Error("Deal ID olinmadi. Tab faqat Deal ichida ishlaydi.");
 
       await loadPaymentsToCalendar();
     } catch (e) {
