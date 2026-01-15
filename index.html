@@ -2,346 +2,746 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MUDDATLI TO'LOV</title>
 
+  <!-- Bitrix24 JS SDK -->
   <script src="https://api.bitrix24.com/api/v1/"></script>
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/main.min.css">
+  <!-- FullCalendar -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 
   <style>
-    body { font-family: Arial, sans-serif; margin:0; padding:0; background:#fff; }
-    .bar {
-      display:flex; gap:8px; align-items:center; padding:10px;
-      border-bottom:1px solid #eee; position:sticky; top:0; background:#fff; z-index:10;
-    }
-    button { padding:7px 12px; cursor:pointer; }
-    #status { font-size:12px; color:#666; }
-    #err { padding:10px; color:#b00; white-space:pre-wrap; }
-    #calendar { padding:10px; }
+    :root{
+      --bg:#f5f7fb;
+      --card:#ffffff;
+      --line:#e7eaf0;
+      --text:#1f2937;
+      --muted:#6b7280;
 
-    /* MODAL */
-    .modal-backdrop{
-      position:fixed; inset:0; background:rgba(0,0,0,.35);
-      display:none; align-items:center; justify-content:center;
-      z-index:9999;
+      --green:#22c55e;
+      --yellow:#f59e0b;
+      --red:#ef4444;
+
+      --btn:#2563eb;
+      --btnText:#fff;
+    }
+
+    html, body { height:100%; }
+    body{
+      margin:0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:12px 12px;
+      background: var(--card);
+      border-bottom:1px solid var(--line);
+      position: sticky;
+      top:0;
+      z-index: 5;
+    }
+    .btn{
+      border:1px solid #cfd6e3;
+      background:#fff;
+      padding:8px 12px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:600;
+    }
+    .btn.primary{
+      background: var(--btn);
+      color: var(--btnText);
+      border-color: var(--btn);
+    }
+    .btn:active{ transform: translateY(1px); }
+
+    .status{
+      margin-left:6px;
+      color: var(--muted);
+      font-size: 13px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .wrap{
+      padding: 12px;
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap: 12px;
+    }
+
+    .card{
+      background: var(--card);
+      border:1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      box-sizing: border-box;
+    }
+
+    #calendar{
+      min-height: 560px;
+    }
+
+    .analytics h3{
+      margin: 0 0 10px 0;
+      font-size: 16px;
+    }
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+    }
+    .kpiRow{
+      border:1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .kpiRow .label{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .kpiRow .value{
+      font-size: 18px;
+      font-weight: 800;
+    }
+    .barline{
+      height: 8px;
+      background:#eef2ff;
+      border-radius: 999px;
+      overflow:hidden;
+      margin-top:8px;
+    }
+    .barfill{ height:100%; width:0%; }
+
+    /* Modal */
+    .modalMask{
+      position: fixed;
+      inset:0;
+      background: rgba(0,0,0,.45);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index: 99999; /* Bitrix ichida ustiga chiqishi shart */
+      padding: 16px;
+      box-sizing: border-box;
     }
     .modal{
-      width:min(760px, 94vw);
-      max-height: 88vh;
-      overflow:auto;
-      background:#fff;
-      border-radius:10px;
-      box-shadow:0 10px 30px rgba(0,0,0,.25);
-      border:1px solid #eaeaea;
+      width: min(860px, 100%);
+      background: var(--card);
+      border-radius: 16px;
+      border:1px solid var(--line);
+      box-shadow: 0 30px 80px rgba(0,0,0,.25);
+      overflow:hidden;
     }
-    .modal-header{
-      display:flex; align-items:center; justify-content:space-between;
-      padding:12px 14px; border-bottom:1px solid #eee; position:sticky; top:0; background:#fff;
+    .modalHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 12px 14px;
+      border-bottom:1px solid var(--line);
+      font-weight: 800;
     }
-    .modal-title{ font-weight:700; }
-    .modal-body{ padding:14px; }
-    .row{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; align-items:center; }
-    .row label{ width:220px; font-size:13px; color:#333; }
-    .row input{
-      flex:1;
-      min-width:260px;
-      padding:8px 10px;
-      border:1px solid #d7d7d7;
-      border-radius:8px;
+    .modalBody{ padding: 14px; }
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .field label{
+      display:block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+    .field input, .field select{
+      width:100%;
+      padding: 10px 10px;
+      border-radius: 10px;
+      border:1px solid #cfd6e3;
       outline:none;
+      box-sizing: border-box;
     }
-    .hint{ font-size:12px; color:#666; margin-top:6px; line-height:1.35; }
-    .modal-footer{
-      display:flex; gap:8px; justify-content:flex-end;
-      padding:12px 14px; border-top:1px solid #eee; background:#fff;
+    .help{
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 10px;
+      line-height: 1.4;
     }
-    .btn-secondary{ background:#f3f3f3; border:1px solid #d7d7d7; border-radius:8px; }
-    .btn-primary{ background:#1677ff; color:#fff; border:1px solid #1677ff; border-radius:8px; }
-    .small-err{ color:#b00; white-space:pre-wrap; font-size:12px; margin-top:8px; }
+    .err{
+      margin-top: 10px;
+      color:#b91c1c;
+      white-space: pre-wrap;
+      font-size: 13px;
+    }
+    .modalFoot{
+      padding: 12px 14px;
+      border-top:1px solid var(--line);
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+    }
+
+    /* Event styles */
+    .fc .fc-daygrid-event{
+      border: none !important;
+      border-radius: 10px !important;
+      padding: 3px 6px !important;
+      font-weight: 700;
+      cursor:pointer;
+    }
+    .evt-green{ background: rgba(34,197,94,.18) !important; color: #065f46 !important; }
+    .evt-yellow{ background: rgba(245,158,11,.20) !important; color: #92400e !important; }
+    .evt-red{ background: rgba(239,68,68,.18) !important; color: #7f1d1d !important; }
   </style>
 </head>
 
 <body>
-  <div class="bar">
-    <button id="btnRefresh" type="button">Refresh</button>
-    <button id="btnGenerate" type="button">Generate schedule</button>
-    <button id="btnSettings" type="button">Settings</button>
-    <div id="status"></div>
+  <div class="topbar">
+    <button class="btn" id="btnRefresh">Refresh</button>
+    <button class="btn" id="btnGenerate">Generate schedule</button>
+    <button class="btn" id="btnSettings">Settings</button>
+    <div class="status" id="status">Loading...</div>
   </div>
 
-  <div id="err"></div>
-  <div id="calendar"></div>
+  <div class="wrap">
+    <div class="card">
+      <div id="calendar"></div>
+    </div>
 
-  <!-- SETTINGS MODAL -->
-  <div id="settingsModal" class="modal-backdrop" role="dialog" aria-modal="true">
-    <div class="modal">
-      <div class="modal-header">
-        <div class="modal-title">Settings</div>
-        <button id="btnCloseSettings" class="btn-secondary" type="button">Close</button>
-      </div>
-      <div class="modal-body">
-        <div class="row">
-          <label>SPA title (exact):</label>
-          <input id="cfgSpaTitle" placeholder="MUDDATLI TO'LOV">
+    <div class="card analytics">
+      <h3>Analitika</h3>
+      <div class="kpi">
+        <div class="kpiRow">
+          <div class="label"><span>Paid</span><span id="kpiPaidPct">0%</span></div>
+          <div class="value" id="kpiPaid">0 so‘m</div>
+          <div class="barline"><div class="barfill" id="barPaid"></div></div>
         </div>
 
-        <div class="row">
-          <label>Due date field code:</label>
-          <input id="cfgDueField" placeholder="ufCrm_XX_DUE_DATE">
+        <div class="kpiRow">
+          <div class="label"><span>Expected</span><span id="kpiExpectedPct">0%</span></div>
+          <div class="value" id="kpiExpected">0 so‘m</div>
+          <div class="barline"><div class="barfill" id="barExpected"></div></div>
         </div>
 
-        <div class="row">
-          <label>Amount field code:</label>
-          <input id="cfgAmountField" placeholder="ufCrm_XX_AMOUNT">
+        <div class="kpiRow">
+          <div class="label"><span>Overdue</span><span id="kpiOverduePct">0%</span></div>
+          <div class="value" id="kpiOverdue">0 so‘m</div>
+          <div class="barline"><div class="barfill" id="barOverdue"></div></div>
         </div>
 
-        <div class="row">
-          <label>Installment field code:</label>
-          <input id="cfgInstField" placeholder="ufCrm_XX_INSTALLMENT">
+        <div class="kpiRow">
+          <div class="label"><span>Jami</span><span id="kpiCount">0 ta</span></div>
+          <div class="value" id="kpiTotal">0 so‘m</div>
+          <div class="help" id="kpiHint">—</div>
         </div>
-
-        <div class="row">
-          <label>Deal parent field:</label>
-          <input id="cfgParentField" placeholder="parentId2">
-        </div>
-
-        <div class="row">
-          <label>StageId (PENDING):</label>
-          <input id="cfgStagePending" placeholder="DTXXX:NEW">
-        </div>
-
-        <div class="row">
-          <label>StageId (PAID):</label>
-          <input id="cfgStagePaid" placeholder="DTXXX:SUCCESS">
-        </div>
-
-        <div class="hint">
-          Field code va stageId larni keyin birga topib qo‘yamiz. Hozircha modal chiqyaptimi — shuni tekshiramiz.
-        </div>
-
-        <div id="settingsErr" class="small-err"></div>
-      </div>
-
-      <div class="modal-footer">
-        <button id="btnSaveSettings" class="btn-primary" type="button">Save</button>
       </div>
     </div>
   </div>
 
-  <!-- GENERATE MODAL -->
-  <div id="genModal" class="modal-backdrop" role="dialog" aria-modal="true">
+  <!-- MODAL -->
+  <div class="modalMask" id="modalMask">
     <div class="modal">
-      <div class="modal-header">
-        <div class="modal-title">Generate schedule</div>
-        <button id="btnCloseGen" class="btn-secondary" type="button">Close</button>
+      <div class="modalHead">
+        <div id="modalTitle">Modal</div>
+        <button class="btn" id="btnCloseModal">Close</button>
       </div>
-
-      <div class="modal-body">
-        <div class="row">
-          <label>Months:</label>
-          <input id="genMonths" type="number" min="1" value="12">
-        </div>
-
-        <div class="row">
-          <label>Start date (YYYY-MM-DD):</label>
-          <input id="genStart" placeholder="2026-01-16">
-        </div>
-
-        <div class="row">
-          <label>Total amount:</label>
-          <input id="genTotal" type="number" min="0" placeholder="12000000">
-        </div>
-
-        <div class="hint">
-          Hozircha “Create” bosilganda faqat demo qiladi. Keyin SPA item create’ni qo‘shamiz.
-        </div>
-
-        <div id="genErr" class="small-err"></div>
-      </div>
-
-      <div class="modal-footer">
-        <button id="btnDoGenerate" class="btn-primary" type="button">Create</button>
-      </div>
+      <div class="modalBody" id="modalBody"></div>
+      <div class="modalFoot" id="modalFoot"></div>
     </div>
   </div>
 
 <script>
 (function(){
-  const LS_KEY = "muddatli_tolov_cfg_v1";
-  const $ = (id) => document.getElementById(id);
+  const $ = (id)=>document.getElementById(id);
+
+  const LS_KEY = "muddatli_tolov_cfg_v2";
+
+  let calendar = null;
+  let dealId = null;
+  let entityTypeId = null;
+  let lastItems = [];
 
   function setStatus(t){ $("status").textContent = t || ""; }
-  function setErr(t){ $("err").textContent = t || ""; }
-
-  function openModal(id){ $(id).style.display = "flex"; }
-  function closeModal(id){ $(id).style.display = "none"; }
-
-  function mustBX24(){
-    if (typeof BX24 === "undefined") throw new Error("BX24 not defined");
+  function moneyUZS(n){
+    const x = Number(n||0);
+    return x.toLocaleString("ru-RU") + " so‘m";
+  }
+  function onlyDigits(s){
+    return String(s||"").replace(/[^\d]/g,"");
   }
 
-  async function getDealIdFromPlacement(){
-    mustBX24();
-    const info = await new Promise((resolve) => BX24.placement.info(resolve));
-    const opts = (info && info.options) ? info.options : {};
-    const id = opts.ID || opts.id || opts.ENTITY_ID || opts.entityId || opts.DEAL_ID || null;
-    return id ? Number(id) : null;
+  function openModal(title, bodyHtml, footHtml){
+    $("modalTitle").textContent = title;
+    $("modalBody").innerHTML = bodyHtml || "";
+    $("modalFoot").innerHTML = footHtml || "";
+    $("modalMask").style.display = "flex";
   }
+  function closeModal(){
+    $("modalMask").style.display = "none";
+    $("modalTitle").textContent = "";
+    $("modalBody").innerHTML = "";
+    $("modalFoot").innerHTML = "";
+  }
+  $("btnCloseModal").addEventListener("click", closeModal);
+  $("modalMask").addEventListener("click", (e)=>{ if(e.target.id==="modalMask") closeModal(); });
 
   function loadCfg(){
     const def = {
       spaTitle: "MUDDATLI TO'LOV",
-      dueField: "",
-      amountField: "",
-      instField: "",
-      parentField: "parentId2",
-      stagePending: "",
-      stagePaid: ""
+      parentField: "parentId2",       // deal -> SPA bog‘lanish
+      dueField: "",                  // ufCrm... (Date)
+      amountField: "",               // ufCrm... (Number)
+      instField: "",                 // ufCrm... (String)
+      statusField: "",               // ixtiyoriy: ufCrm... (String/List) agar statusni fieldda saqlasangiz
+      stagePending: "",              // DTxxx:...
+      stagePaid: "",                 // DTxxx:...
+      nearDays: 3                    // sariq: due datega nechta kun qolganda
     };
-    try{
-      const raw = localStorage.getItem(LS_KEY);
-      if (!raw) return def;
-      return Object.assign(def, JSON.parse(raw));
-    }catch(e){
-      return def;
-    }
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return def;
+    try { return Object.assign(def, JSON.parse(raw)); } catch { return def; }
   }
-
   function saveCfg(cfg){
     localStorage.setItem(LS_KEY, JSON.stringify(cfg));
   }
 
-  function cfgToUI(cfg){
-    $("cfgSpaTitle").value = cfg.spaTitle || "";
-    $("cfgDueField").value = cfg.dueField || "";
-    $("cfgAmountField").value = cfg.amountField || "";
-    $("cfgInstField").value = cfg.instField || "";
-    $("cfgParentField").value = cfg.parentField || "parentId2";
-    $("cfgStagePending").value = cfg.stagePending || "";
-    $("cfgStagePaid").value = cfg.stagePaid || "";
+  function bxCall(method, params){
+    return new Promise((resolve, reject)=>{
+      BX24.callMethod(method, params, function(res){
+        if(res.error()){
+          reject(new Error(method + ": " + res.error() + " " + (res.error_description()||"")));
+          return;
+        }
+        resolve(res.data());
+      });
+    });
+  }
+  function bxCallAll(method, params){
+    return new Promise((resolve, reject)=>{
+      const items = [];
+      BX24.callMethod(method, params, function(res){
+        if(res.error()){
+          reject(new Error(method + ": " + res.error() + " " + (res.error_description()||"")));
+          return;
+        }
+        items.push(...(res.data()||[]));
+        if(res.more()) res.next();
+        else resolve(items);
+      });
+    });
   }
 
-  function uiToCfg(){
-    return {
-      spaTitle: $("cfgSpaTitle").value.trim() || "MUDDATLI TO'LOV",
-      dueField: $("cfgDueField").value.trim(),
-      amountField: $("cfgAmountField").value.trim(),
-      instField: $("cfgInstField").value.trim(),
-      parentField: $("cfgParentField").value.trim() || "parentId2",
-      stagePending: $("cfgStagePending").value.trim(),
-      stagePaid: $("cfgStagePaid").value.trim(),
-    };
+  async function getDealIdFromPlacement(){
+    const info = await new Promise((r)=>BX24.placement.info(r));
+    const opts = info && info.options ? info.options : {};
+    // CRM_DEAL_DETAIL_TAB ko‘pincha ID beradi
+    return Number(opts.ID || opts.id || opts.ENTITY_ID || opts.entityId || opts.DEAL_ID || 0) || null;
   }
 
-  // Calendar (demo)
-  let calendar;
+  async function resolveEntityTypeIdByTitle(spaTitle){
+    const types = await bxCallAll("crm.type.list", { order: { id:"ASC" } });
+    const t = types.find(x => String(x.title||"").trim().toLowerCase() === spaTitle.trim().toLowerCase());
+    if(!t) throw new Error("SPA type topilmadi: '"+spaTitle+"'. CRM.type.list ichidan tekshiring.");
+    return t.entityTypeId || t.id;
+  }
+
+  function parseISODate(d){
+    // YYYY-MM-DD
+    if(!d) return null;
+    const s = String(d).substring(0,10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+    const [y,m,dd] = s.split("-").map(Number);
+    return new Date(y, m-1, dd);
+  }
+  function addMonths(dateStr, add){
+    const dt = parseISODate(dateStr);
+    if(!dt) return null;
+    const d = dt.getDate();
+    dt.setMonth(dt.getMonth()+add);
+    // month overflow fix: agar 31 -> 30/28 ga tushsa ham OK
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth()+1).padStart(2,"0");
+    const dd = String(dt.getDate()).padStart(2,"0");
+    return `${y}-${m}-${dd}`;
+  }
+
+  function classify(item, cfg){
+    // Paid stage bo‘lsa green.
+    const due = parseISODate(item[cfg.dueField]);
+    const amt = Number(item[cfg.amountField] || 0);
+    const isPaid = cfg.stagePaid && item.stageId === cfg.stagePaid;
+
+    if(isPaid) return { cls:"evt-green", bucket:"paid", amt };
+
+    // due bo‘lmasa expected deb hisoblaymiz
+    if(!due) return { cls:"evt-yellow", bucket:"expected", amt };
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const diffDays = Math.floor((due.getTime()-today.getTime())/86400000);
+
+    if(diffDays < 0) return { cls:"evt-red", bucket:"overdue", amt };
+    if(diffDays <= Number(cfg.nearDays||3)) return { cls:"evt-yellow", bucket:"expected", amt };
+
+    // uzoq bo‘lsa ham expected
+    return { cls:"evt-yellow", bucket:"expected", amt };
+  }
+
+  function updateAnalytics(items, cfg){
+    let paid=0, expected=0, overdue=0;
+    let count=0, total=0;
+
+    for(const it of items){
+      const amt = Number(it[cfg.amountField]||0);
+      total += amt; count += 1;
+      const c = classify(it,cfg);
+      if(c.bucket==="paid") paid += amt;
+      else if(c.bucket==="overdue") overdue += amt;
+      else expected += amt;
+    }
+
+    $("kpiPaid").textContent = moneyUZS(paid);
+    $("kpiExpected").textContent = moneyUZS(expected);
+    $("kpiOverdue").textContent = moneyUZS(overdue);
+    $("kpiTotal").textContent = moneyUZS(total);
+    $("kpiCount").textContent = count + " ta";
+
+    const pct = (x)=> total>0 ? Math.round((x/total)*100) : 0;
+
+    const pPaid = pct(paid), pExp=pct(expected), pOver=pct(overdue);
+    $("kpiPaidPct").textContent = pPaid + "%";
+    $("kpiExpectedPct").textContent = pExp + "%";
+    $("kpiOverduePct").textContent = pOver + "%";
+
+    $("barPaid").style.width = pPaid + "%";
+    $("barExpected").style.width = pExp + "%";
+    $("barOverdue").style.width = pOver + "%";
+
+    $("barPaid").style.background = "var(--green)";
+    $("barExpected").style.background = "var(--yellow)";
+    $("barOverdue").style.background = "var(--red)";
+
+    $("kpiHint").textContent =
+      `Paid: ${pPaid}%, Expected: ${pExp}%, Overdue: ${pOver}% (deal: ${dealId})`;
+  }
+
   function initCalendar(){
     calendar = new FullCalendar.Calendar($("calendar"), {
       initialView: "dayGridMonth",
       height: "auto",
-      events: []
+      headerToolbar: { left: "prev,next today", center: "title", right: "" },
+      eventClick: async (info)=>{
+        const cfg = loadCfg();
+        const itemId = Number(info.event.id);
+        const isPaid = info.event.extendedProps && info.event.extendedProps.isPaid;
+
+        // Paid bo‘lmaganini paid qilib qo‘yish:
+        if(!isPaid){
+          if(!cfg.stagePaid) return alert("Settings: PAID stageId yo‘q");
+          try{
+            setStatus("Marking as PAID...");
+            await bxCall("crm.item.update", { entityTypeId, id:itemId, fields: { stageId: cfg.stagePaid }});
+            await refreshAll();
+            setStatus("Updated");
+          }catch(e){
+            alert(String(e.message||e));
+          }
+        }
+      }
     });
     calendar.render();
   }
 
-  // Buttons
-  function wireButtons(){
-    $("btnSettings").addEventListener("click", () => {
-      $("settingsErr").textContent = "";
-      cfgToUI(loadCfg());
-      openModal("settingsModal");
-      setStatus("Settings opened");
+  async function loadItemsForDeal(){
+    const cfg = loadCfg();
+
+    if(!dealId) throw new Error("Deal ID topilmadi. Bu tab faqat deal ichida ishlaydi.");
+    if(!entityTypeId) entityTypeId = await resolveEntityTypeIdByTitle(cfg.spaTitle);
+
+    if(!cfg.dueField || !cfg.amountField || !cfg.instField || !cfg.parentField){
+      throw new Error("Settings to‘liq emas: dueField/amountField/instField/parentField.");
+    }
+
+    const filter = {};
+    filter[cfg.parentField] = dealId;
+
+    const select = ["id","title","stageId", cfg.dueField, cfg.amountField, cfg.instField];
+    const items = await bxCallAll("crm.item.list", {
+      entityTypeId,
+      filter,
+      select,
+      order: { "id":"ASC" }
     });
 
-    $("btnGenerate").addEventListener("click", () => {
-      $("genErr").textContent = "";
-      openModal("genModal");
-      setStatus("Generate opened");
-    });
+    lastItems = items;
+    return items;
+  }
 
-    $("btnRefresh").addEventListener("click", async () => {
+  function renderCalendarFromItems(items){
+    const cfg = loadCfg();
+    const events = items
+      .map(it=>{
+        const due = String(it[cfg.dueField]||"").substring(0,10);
+        if(!due) return null;
+
+        const cls = classify(it,cfg);
+        const inst = it[cfg.instField] || "";
+        const amt = Number(it[cfg.amountField]||0);
+
+        return {
+          id: String(it.id),
+          title: `${inst} • ${moneyUZS(amt)}`,
+          start: due,
+          allDay: true,
+          classNames: [cls.cls],
+          extendedProps: { isPaid: (cfg.stagePaid && it.stageId===cfg.stagePaid) }
+        };
+      })
+      .filter(Boolean);
+
+    calendar.removeAllEvents();
+    calendar.addEventSource(events);
+  }
+
+  async function refreshAll(){
+    const cfg = loadCfg();
+    setStatus("Loading...");
+    const items = await loadItemsForDeal();
+    renderCalendarFromItems(items);
+    updateAnalytics(items, cfg);
+    setStatus("Loaded: " + items.length);
+  }
+
+  function openSettings(){
+    const cfg = loadCfg();
+    openModal(
+      "Settings",
+      `
+      <div class="grid2">
+        <div class="field">
+          <label>SPA nomi (Title)</label>
+          <input id="s_spaTitle" value="${(cfg.spaTitle||"").replace(/"/g,'&quot;')}" placeholder="MUDDATLI TO'LOV">
+        </div>
+        <div class="field">
+          <label>Deal parent field</label>
+          <input id="s_parentField" value="${(cfg.parentField||"").replace(/"/g,'&quot;')}" placeholder="parentId2">
+        </div>
+
+        <div class="field">
+          <label>Due date field code (Date)</label>
+          <input id="s_dueField" value="${(cfg.dueField||"").replace(/"/g,'&quot;')}" placeholder="ufCrmXX_DUE_DATE">
+        </div>
+        <div class="field">
+          <label>Amount field code (Number)</label>
+          <input id="s_amountField" value="${(cfg.amountField||"").replace(/"/g,'&quot;')}" placeholder="ufCrmXX_AMOUNT">
+        </div>
+
+        <div class="field">
+          <label>Installment field code (String)</label>
+          <input id="s_instField" value="${(cfg.instField||"").replace(/"/g,'&quot;')}" placeholder="ufCrmXX_INSTALLMENT">
+        </div>
+        <div class="field">
+          <label>Sariq (muddat yaqin) – kun</label>
+          <input id="s_nearDays" type="number" min="0" value="${Number(cfg.nearDays||3)}">
+        </div>
+
+        <div class="field">
+          <label>StageId: PENDING</label>
+          <input id="s_stagePending" value="${(cfg.stagePending||"").replace(/"/g,'&quot;')}" placeholder="DTxxx:NEW">
+        </div>
+        <div class="field">
+          <label>StageId: PAID</label>
+          <input id="s_stagePaid" value="${(cfg.stagePaid||"").replace(/"/g,'&quot;')}" placeholder="DTxxx:SUCCESS">
+        </div>
+      </div>
+
+      <div class="help">
+        Field code’lar SPA field sozlamalarida “Code” sifatida ko‘rinadi.<br>
+        StageId’lar SPA kanban stage sozlamalarida yoki REST orqali olinadi.
+      </div>
+      <div class="err" id="s_err"></div>
+      `,
+      `
+        <button class="btn" id="s_cancel">Cancel</button>
+        <button class="btn primary" id="s_save">Save</button>
+      `
+    );
+
+    $("s_cancel").onclick = closeModal;
+    $("s_save").onclick = async ()=>{
       try{
-        setErr("");
-        setStatus("Refreshing...");
-        const dealId = await getDealIdFromPlacement();
-        setStatus("Deal ID = " + dealId);
+        const next = {
+          spaTitle: $("s_spaTitle").value.trim() || "MUDDATLI TO'LOV",
+          parentField: $("s_parentField").value.trim() || "parentId2",
+          dueField: $("s_dueField").value.trim(),
+          amountField: $("s_amountField").value.trim(),
+          instField: $("s_instField").value.trim(),
+          stagePending: $("s_stagePending").value.trim(),
+          stagePaid: $("s_stagePaid").value.trim(),
+          nearDays: Number($("s_nearDays").value || 3)
+        };
 
-        calendar.removeAllEvents();
-        if (dealId) {
-          calendar.addEvent({
-            title: "Deal #" + dealId,
-            start: new Date().toISOString().slice(0,10),
-            allDay:true
-          });
+        if(!next.dueField || !next.amountField || !next.instField){
+          throw new Error("Due/Amount/Installment field code’larni kiriting.");
         }
+        saveCfg(next);
+        entityTypeId = null; // qayta hisoblash
+        closeModal();
+        await refreshAll();
       }catch(e){
-        setErr(String(e.message || e));
+        $("s_err").textContent = String(e.message||e);
+      }
+    };
+  }
+
+  function openGenerate(){
+    const cfg = loadCfg();
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth()+1).padStart(2,"0");
+    const d = String(today.getDate()).padStart(2,"0");
+    const defaultDate = `${y}-${m}-${d}`;
+
+    openModal(
+      "Generate schedule",
+      `
+      <div class="grid2">
+        <div class="field">
+          <label>Months</label>
+          <input id="g_months" type="number" min="1" value="12">
+        </div>
+        <div class="field">
+          <label>Start date</label>
+          <input id="g_start" type="date" value="${defaultDate}">
+        </div>
+
+        <div class="field">
+          <label>Total amount (so‘m)</label>
+          <input id="g_total" inputmode="numeric" placeholder="10000000">
+        </div>
+        <div class="field">
+          <label>Har oy (auto)</label>
+          <input id="g_perMonth" disabled value="0 so‘m">
+        </div>
+      </div>
+
+      <div class="help">
+        Create bosilganda: har oy uchun SPA item yaratiladi va Deal’ga bog‘lanadi.<br>
+        Ranglar: yashil = paid, sariq = yaqin/expected, qizil = overdue.
+      </div>
+
+      <div class="err" id="g_err"></div>
+      `,
+      `
+        <button class="btn" id="g_cancel">Cancel</button>
+        <button class="btn primary" id="g_create">Create</button>
+      `
+    );
+
+    function recalc(){
+      const months = Number($("g_months").value||0);
+      const total = Number(onlyDigits($("g_total").value)||0);
+      if(months>0 && total>0){
+        const per = Math.floor(total/months);
+        $("g_perMonth").value = moneyUZS(per);
+      }else{
+        $("g_perMonth").value = "0 so‘m";
+      }
+    }
+
+    $("g_total").addEventListener("input", ()=>{
+      // format qilmaymiz input paytida, faqat digits qoldiramiz
+      const v = onlyDigits($("g_total").value);
+      $("g_total").value = v ? v : "";
+      recalc();
+    });
+    $("g_months").addEventListener("input", recalc);
+
+    $("g_cancel").onclick = closeModal;
+
+    $("g_create").onclick = async ()=>{
+      try{
+        const cfg2 = loadCfg();
+        if(!cfg2.stagePending) throw new Error("Settings: PENDING stageId kiritilmagan.");
+        if(!cfg2.dueField || !cfg2.amountField || !cfg2.instField) throw new Error("Settings: field code’lar to‘liq emas.");
+
+        const months = Number($("g_months").value||0);
+        const start = $("g_start").value;
+        const total = Number(onlyDigits($("g_total").value)||0);
+
+        if(!(months>=1)) throw new Error("Months noto‘g‘ri.");
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(start)) throw new Error("Start date noto‘g‘ri.");
+        if(!(total>0)) throw new Error("Total amount noto‘g‘ri.");
+
+        if(!entityTypeId) entityTypeId = await resolveEntityTypeIdByTitle(cfg2.spaTitle);
+
+        setStatus("Creating items...");
+        $("g_err").textContent = "";
+
+        const per = Math.floor(total/months);
+        const rem = total - per*months;
+
+        for(let i=1;i<=months;i++){
+          const due = addMonths(start, i-1);
+          const amt = per + (i===months ? rem : 0);
+          const inst = `${i}/${months}`;
+
+          const fields = {};
+          fields[cfg2.dueField] = due;
+          fields[cfg2.amountField] = amt;
+          fields[cfg2.instField] = inst;
+          fields.stageId = cfg2.stagePending;
+          fields[cfg2.parentField] = dealId;
+
+          await bxCall("crm.item.add", { entityTypeId, fields });
+        }
+
+        closeModal();
+        await refreshAll();
+        setStatus("Created: " + months);
+      }catch(e){
+        $("g_err").textContent = String(e.message||e);
         setStatus("");
       }
-    });
+    };
 
-    $("btnCloseSettings").addEventListener("click", () => closeModal("settingsModal"));
-    $("btnCloseGen").addEventListener("click", () => closeModal("genModal"));
-
-    // backdrop click closes
-    $("settingsModal").addEventListener("click", (e) => { if (e.target.id === "settingsModal") closeModal("settingsModal"); });
-    $("genModal").addEventListener("click", (e) => { if (e.target.id === "genModal") closeModal("genModal"); });
-
-    $("btnSaveSettings").addEventListener("click", () => {
-      try{
-        $("settingsErr").textContent = "";
-        const cfg = uiToCfg();
-        saveCfg(cfg);
-        closeModal("settingsModal");
-        setStatus("Settings saved");
-      }catch(e){
-        $("settingsErr").textContent = String(e.message || e);
-      }
-    });
-
-    $("btnDoGenerate").addEventListener("click", async () => {
-      try{
-        $("genErr").textContent = "";
-        const months = Number($("genMonths").value);
-        const start = $("genStart").value.trim();
-        const total = Number($("genTotal").value);
-
-        if (!months || months < 1) throw new Error("Months noto‘g‘ri");
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(start)) throw new Error("Start date YYYY-MM-DD bo‘lsin");
-        if (!total || total <= 0) throw new Error("Total amount noto‘g‘ri");
-
-        const dealId = await getDealIdFromPlacement();
-        if (!dealId) throw new Error("Deal ichida oching (Deal ID yo‘q)");
-
-        // Demo: calendar ga birinchi to'lovni qo'yamiz
-        calendar.addEvent({ title: "1/" + months + "  " + total, start, allDay:true });
-
-        closeModal("genModal");
-        setStatus("Generate demo OK (Deal ID=" + dealId + ")");
-      }catch(e){
-        $("genErr").textContent = String(e.message || e);
-      }
-    });
+    recalc();
   }
+
+  // Buttons
+  $("btnSettings").addEventListener("click", openSettings);
+  $("btnGenerate").addEventListener("click", openGenerate);
+  $("btnRefresh").addEventListener("click", async ()=>{
+    try{ await refreshAll(); }catch(e){ alert(String(e.message||e)); }
+  });
 
   // Boot
   BX24.init(async function(){
     try{
-      setErr("");
       initCalendar();
-      wireButtons();
-
-      const dealId = await getDealIdFromPlacement();
-      if (dealId) setStatus("Ready. Deal ID=" + dealId);
-      else setStatus("Ready (Deal ID not found)");
-
+      dealId = await getDealIdFromPlacement();
+      if(!dealId) throw new Error("Deal ID olinmadi. Widget CRM deal ichida ochilishi shart (CRM_DEAL_DETAIL_TAB).");
+      await refreshAll();
     }catch(e){
-      setErr(String(e.message || e));
-      setStatus("");
+      setStatus("Error");
+      alert(String(e.message||e));
     }
   });
+
 })();
 </script>
 
