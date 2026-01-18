@@ -758,6 +758,17 @@
     }
   });
 
+  BX24.init(function() {
+    BX24.placement.info(function(info) {
+      const dealId = info.options.ID || info.options.id || info.options.ENTITY_ID || info.options.entityId || info.options.DEAL_ID || info.options["ENTITY.ID"];
+      if (dealId) {
+        console.log("Deal ID:", dealId);
+        // Load data for the Deal ID
+      } else {
+        console.error("Deal ID not found in placement info.");
+      }
+    });
+  });
 })();
 </script>
 
