@@ -2,397 +2,358 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>MUDDATLI TO'LOV</title>
+  <title>Muddatli To'lov</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Bitrix24 JS -->
-  <script src="https://api.bitrix24.com/api/v1/"></script>
-
-  <!-- FullCalendar (FAqat 1 ta CDN) -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+  <!-- BX24 loader (fallback bilan) -->
+  <script>
+    (function(){
+      function load(src){
+        return new Promise((resolve,reject)=>{
+          var s=document.createElement('script');
+          s.src=src;
+          s.onload=resolve;
+          s.onerror=reject;
+          document.head.appendChild(s);
+        });
+      }
+      window.__bxReady = (async ()=>{
+        if (window.BX24) return true;
+        try{ await load("https://api.bitrix24.com/api/v1/"); }catch(e){}
+        if (window.BX24) return true;
+        // Fallback (ba'zi holatlarda shu yordam beradi)
+        try{ await load("//api.bitrix24.com/api/v1/"); }catch(e){}
+        return !!window.BX24;
+      })();
+    })();
+  </script>
 
   <style>
     :root{
-      --bg:#f6f7f9;
-      --card:#fff;
-      --border:#e6e8ee;
-      --text:#111827;
-      --muted:#6b7280;
+      --bg:#f6f7f9; --card:#fff; --border:#e6e8ee; --text:#111827; --muted:#6b7280;
+      --blue:#2563eb; --green:#16a34a; --red:#ef4444; --yellow:#f59e0b;
+    }
+    body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{padding:14px}
+    .topbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);padding:10px;border-radius:10px}
+    .btn{border:1px solid var(--border);background:#fff;padding:7px 12px;border-radius:8px;cursor:pointer;font-weight:700}
+    .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+    .btn.icon{width:38px;height:34px;display:flex;align-items:center;justify-content:center}
+    .status{color:var(--muted);font-size:13px;margin-left:6px}
+    .err{margin-top:10px;color:#b00;white-space:pre-wrap;font-size:13px}
 
-      --green:#16a34a;
-      --yellow:#f59e0b;
-      --red:#ef4444;
-      --blue:#2563eb;
-    }
-    body{ margin:0; font-family: Arial, sans-serif; background:var(--bg); color:var(--text); }
-    .wrap{ padding:14px; }
+    .grid{margin-top:12px;display:grid;grid-template-columns: 420px 1fr;gap:12px;align-items:start}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px}
+    .h{font-weight:900;font-size:16px;margin:0 0 10px}
+    .kv{display:grid;grid-template-columns: 1fr 1fr;gap:10px}
+    .k{border:1px solid var(--border);border-radius:10px;padding:10px}
+    .k .l{color:var(--muted);font-size:12px}
+    .k .v{font-weight:900;font-size:18px;margin-top:6px}
 
-    .topbar{
-      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
-      background:var(--card); border:1px solid var(--border);
-      padding:10px; border-radius:10px;
-    }
-    button{
-      border:1px solid var(--border); background:#fff; padding:7px 12px; border-radius:8px;
-      cursor:pointer; font-weight:600;
-    }
-    button.primary{ background:var(--blue); color:#fff; border-color:var(--blue); }
-    button:disabled{ opacity:.6; cursor:not-allowed; }
-    .status{ margin-left:6px; color:var(--muted); font-size:13px; }
-    .err{ margin-top:10px; color:#b00; white-space:pre-wrap; font-size:13px; }
-
-    .grid{
-      margin-top:12px;
-      display:grid;
-      grid-template-columns: 1fr 320px;
-      gap:12px;
-      align-items:start;
-    }
-    .card{
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:12px;
-      padding:12px;
-    }
-    #calendar{ min-height: 520px; }
-
-    .anaTitle{ font-weight:800; margin-bottom:10px; }
-    .anaBox{ border:1px solid var(--border); border-radius:10px; padding:10px; margin-bottom:10px; }
-    .anaRow{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
-    .anaLabel{ color:var(--muted); font-size:13px; }
-    .anaVal{ font-weight:800; }
-    .bar{ height:8px; border-radius:999px; background:#eef2ff; overflow:hidden; margin-top:8px; }
-    .bar > div{ height:8px; width:0%; background:var(--blue); }
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .pill{font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);color:var(--muted)}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{border-bottom:1px solid var(--border);padding:10px 8px;text-align:left;font-size:14px}
+    .table th{color:var(--muted);font-size:12px}
+    .act{display:flex;gap:8px}
+    .mini{font-size:12px;color:var(--muted)}
+    .danger{color:var(--red)}
+    .linkbtn{background:transparent;border:none;color:var(--blue);cursor:pointer;font-weight:800;padding:0}
+    .mutebtn{background:transparent;border:none;color:var(--muted);cursor:pointer;font-weight:800;padding:0}
 
     /* Modal */
-    .modalMask{
-      position:fixed; inset:0; background:rgba(17,24,39,.55);
-      display:none; align-items:center; justify-content:center;
-      padding:16px; z-index:9999;
-    }
-    .modal{
-      width:min(900px, 96vw);
-      background:#fff; border-radius:14px; overflow:hidden;
-      box-shadow:0 20px 60px rgba(0,0,0,.25);
-    }
-    .modalHead{
-      display:flex; align-items:center; justify-content:space-between;
-      padding:14px 16px; border-bottom:1px solid var(--border);
-      font-weight:800;
-    }
-    .modalBody{ padding:16px; }
-    .modalFoot{
-      display:flex; justify-content:flex-end; gap:10px;
-      padding:14px 16px; border-top:1px solid var(--border);
-    }
-    .formGrid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:12px;
-    }
-    .field label{ display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
-    .field input{
-      width:100%; box-sizing:border-box;
-      padding:10px 12px; border:1px solid var(--border); border-radius:10px;
-      outline:none;
-    }
-    .hint{ color:var(--muted); font-size:12px; margin-top:8px; }
-    .smallNote{ color:var(--muted); font-size:12px; margin-top:6px; }
-
-    /* FullCalendar event styles */
-    .fc .fc-toolbar-title{ font-size:18px; font-weight:900; }
-    .evt{
-      padding:2px 6px; border-radius:6px; color:#fff; font-size:12px; font-weight:800;
-      display:flex; justify-content:space-between; gap:6px;
-    }
-    .evt .amt{ font-weight:900; }
+    .mask{position:fixed;inset:0;background:rgba(17,24,39,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:9999}
+    .modal{width:min(860px,96vw);background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+    .mhead{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);font-weight:900}
+    .mbody{padding:16px}
+    .mfoot{display:flex;justify-content:flex-end;gap:10px;padding:14px 16px;border-top:1px solid var(--border)}
+    .fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .f label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
+    .f input,.f select{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:10px;outline:none}
+    .note{color:var(--muted);font-size:12px;margin-top:8px}
   </style>
 </head>
 
 <body>
 <div class="wrap">
   <div class="topbar">
-    <button id="btnRefresh">Refresh</button>
-    <button id="btnGenerate" class="primary">Generate schedule</button>
-    <button id="btnSettings">Settings</button>
-    <span id="status" class="status"></span>
+    <button class="btn" id="btnRefresh">Refresh</button>
+
+    <!-- + : Payment accept -->
+    <button class="btn icon primary" id="btnPay" title="To'lov qabul qilish">+</button>
+
+    <!-- Calculator : New plan -->
+    <button class="btn icon" id="btnPlan" title="Yangi muddatli to'lov rejasi (kalkulyator)">🧮</button>
+
+    <!-- Settings -->
+    <button class="btn" id="btnSettings">Settings</button>
+
+    <span class="status" id="status"></span>
   </div>
 
   <div id="err" class="err"></div>
 
   <div class="grid">
+    <!-- LEFT: stats -->
     <div class="card">
-      <div id="calendar"></div>
+      <h3 class="h">Umumiy statistika</h3>
+
+      <div class="row" style="margin-bottom:10px">
+        <span class="pill" id="pillDeal">Deal: —</span>
+        <span class="pill" id="pillPlan">Plan: —</span>
+      </div>
+
+      <div class="kv">
+        <div class="k">
+          <div class="l">Kurs</div>
+          <div class="v" id="stCourse">—</div>
+        </div>
+        <div class="k">
+          <div class="l">Kurs bo‘yicha tushishi kerak (jami)</div>
+          <div class="v" id="stTotal">0 so‘m</div>
+        </div>
+        <div class="k">
+          <div class="l">To‘langan summa</div>
+          <div class="v" id="stPaid">0 so‘m</div>
+        </div>
+        <div class="k">
+          <div class="l">Qolgan summa</div>
+          <div class="v" id="stRemain">0 so‘m</div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px" class="row">
+        <button class="btn danger" id="btnDeletePlan" title="Umumiy kurs to‘lov rejasini o‘chirish">Plan’ni o‘chirish</button>
+        <span class="mini" id="planHint"></span>
+      </div>
     </div>
 
+    <!-- RIGHT: payments list -->
     <div class="card">
-      <div class="anaTitle">Analitika</div>
-
-      <div class="anaBox">
-        <div class="anaRow">
-          <div class="anaLabel">Paid</div>
-          <div class="anaVal" id="anaPaid">0 so'm</div>
-        </div>
-        <div class="bar"><div id="barPaid"></div></div>
+      <div class="row" style="justify-content:space-between">
+        <h3 class="h" style="margin:0">To‘lovlar ro‘yxati</h3>
+        <span class="mini" id="payCount">0 ta</span>
       </div>
 
-      <div class="anaBox">
-        <div class="anaRow">
-          <div class="anaLabel">Expected</div>
-          <div class="anaVal" id="anaExpected">0 so'm</div>
-        </div>
-        <div class="bar"><div id="barExpected"></div></div>
-      </div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Sana</th>
+            <th>Summa</th>
+            <th>Izoh</th>
+            <th style="width:120px">Amallar</th>
+          </tr>
+        </thead>
+        <tbody id="payBody">
+          <tr><td colspan="4" class="mini">Loading…</td></tr>
+        </tbody>
+      </table>
 
-      <div class="anaBox">
-        <div class="anaRow">
-          <div class="anaLabel">Overdue</div>
-          <div class="anaVal" id="anaOverdue">0 so'm</div>
-        </div>
-        <div class="bar"><div id="barOverdue"></div></div>
-      </div>
-
-      <div class="anaBox">
-        <div class="anaRow">
-          <div class="anaLabel">Jami</div>
-          <div class="anaVal" id="anaTotal">0 so'm</div>
-        </div>
-        <div class="smallNote" id="anaCount">0 ta</div>
-      </div>
-
-      <div class="hint">
-        Ranglar: Yashil – paid, Sariq – muddat yaqin, Qizil – prosrochka.
+      <div class="note">
+        Eslatma: “qisman to‘lov” kiritilsa, tizim qolgan summani qayta hisoblaydi (Remaining = Total - Paid).
       </div>
     </div>
   </div>
 </div>
 
-<!-- SETTINGS MODAL -->
-<div class="modalMask" id="mSettings">
+<!-- SETTINGS MODAL (entityTypeId lar + fieldlar + stages) -->
+<div class="mask" id="mSettings">
   <div class="modal">
-    <div class="modalHead">
+    <div class="mhead">
       <div>Settings</div>
-      <button id="btnCloseSettings">Close</button>
+      <button class="btn" id="btnCloseSettings">Close</button>
     </div>
-    <div class="modalBody">
-      <div class="formGrid">
-        <div class="field">
-          <label>SPA nomi (Title)</label>
-          <input id="cfgSpaTitle" />
+    <div class="mbody">
+      <div class="fg">
+        <div class="f">
+          <label>Plan SPA Title (aniq nomi)</label>
+          <input id="cfgPlanTitle" placeholder="MUDDATLI TO'LOV" />
+        </div>
+        <div class="f">
+          <label>Payments SPA Title (aniq nomi)</label>
+          <input id="cfgPayTitle" placeholder="TO'LOVLAR" />
         </div>
 
-        <div class="field">
-          <label>Deal parent field</label>
+        <div class="f">
+          <label>Deal parent field (Plan/Payment’da)</label>
           <input id="cfgParentField" />
         </div>
 
-        <div class="field">
-          <label>Due date field code (Date)</label>
-          <input id="cfgDueField" />
+        <div class="f">
+          <label>Plan: Total amount field code</label>
+          <input id="cfgPlanTotalField" placeholder="UF_CRM_xxx" />
         </div>
 
-        <div class="field">
-          <label>Amount field code (Number)</label>
-          <input id="cfgAmountField" />
+        <div class="f">
+          <label>Plan: Course field code</label>
+          <input id="cfgPlanCourseField" placeholder="UF_CRM_xxx" />
         </div>
 
-        <div class="field">
-          <label>Installment field code (String)</label>
-          <input id="cfgInstField" />
+        <div class="f">
+          <label>Payment: Amount field code</label>
+          <input id="cfgPayAmountField" placeholder="UF_CRM_xxx" />
         </div>
 
-        <div class="field">
-          <label>Sariq (muddat yaqin) – kun</label>
-          <input id="cfgYellowDays" type="number" min="0" />
+        <div class="f">
+          <label>Payment: Date field code</label>
+          <input id="cfgPayDateField" placeholder="UF_CRM_xxx" />
         </div>
 
-        <div class="field">
-          <label>StageId: PENDING</label>
-          <input id="cfgStagePending" />
-        </div>
-
-        <div class="field">
-          <label>StageId: PAID</label>
-          <input id="cfgStagePaid" />
+        <div class="f">
+          <label>Payment: Comment field code</label>
+          <input id="cfgPayCommentField" placeholder="UF_CRM_xxx" />
         </div>
       </div>
 
-      <div class="hint">
-        Field/stage kodlar — SPA sozlamalaridan olinadi. Save bosilganda widget shu qiymatlar bilan ishlaydi.
+      <div class="note">
+        Bu “Settings” portal bo‘yicha BX24.appOption orqali saqlanadi. Hamma operatorlarda bir xil bo‘ladi.
       </div>
+      <div class="err" id="cfgErr"></div>
     </div>
-    <div class="modalFoot">
-      <button id="btnCancelSettings">Cancel</button>
-      <button id="btnSaveSettings" class="primary">Save</button>
+    <div class="mfoot">
+      <button class="btn" id="btnCancelSettings">Cancel</button>
+      <button class="btn primary" id="btnSaveSettings">Save</button>
     </div>
   </div>
 </div>
 
-<!-- GENERATE MODAL -->
-<div class="modalMask" id="mGenerate">
+<!-- PAYMENT MODAL (+) -->
+<div class="mask" id="mPay">
   <div class="modal">
-    <div class="modalHead">
-      <div>Generate schedule</div>
-      <button id="btnCloseGenerate">Close</button>
+    <div class="mhead">
+      <div>To‘lov qabul qilish</div>
+      <button class="btn" id="btnClosePay">Close</button>
     </div>
-    <div class="modalBody">
-      <div class="formGrid">
-        <div class="field">
-          <label>Months</label>
-          <input id="genMonths" type="number" min="1" value="12" />
+    <div class="mbody">
+      <div class="fg">
+        <div class="f">
+          <label>Sana</label>
+          <input id="payDate" type="date" />
+        </div>
+        <div class="f">
+          <label>Summa (so‘m)</label>
+          <input id="payAmount" inputmode="numeric" placeholder="500 000" />
+        </div>
+        <div class="f" style="grid-column:1 / -1">
+          <label>Izoh</label>
+          <input id="payComment" placeholder="Misol: Naqd / Click / oldindan qisman" />
+        </div>
+      </div>
+      <div class="err" id="payErr"></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn" id="btnCancelPay">Cancel</button>
+      <button class="btn primary" id="btnDoPay">Saqlash</button>
+    </div>
+  </div>
+</div>
+
+<!-- PLAN MODAL (Calculator) -->
+<div class="mask" id="mPlan">
+  <div class="modal">
+    <div class="mhead">
+      <div>Yangi muddatli to‘lov rejasi</div>
+      <button class="btn" id="btnClosePlan">Close</button>
+    </div>
+    <div class="mbody">
+      <div class="fg">
+        <div class="f">
+          <label>Kurs</label>
+          <select id="plCourse"></select>
+        </div>
+        <div class="f">
+          <label>Kurs narxi (auto)</label>
+          <input id="plCoursePrice" disabled />
         </div>
 
-        <div class="field">
-          <label>Start date</label>
-          <input id="genStart" type="date" />
+        <div class="f">
+          <label>Oldindan to‘lov</label>
+          <input id="plPrepay" inputmode="numeric" placeholder="0" />
+        </div>
+        <div class="f">
+          <label>Muddat (oy)</label>
+          <input id="plMonths" placeholder="3 / 6 / 12 yoki qo‘lda" inputmode="numeric" />
         </div>
 
-        <div class="field">
-          <label>Total amount (so'm)</label>
-          <input id="genTotal" inputmode="numeric" placeholder="10 000 000" />
+        <div class="f">
+          <label>Birinchi to‘lov sanasi</label>
+          <input id="plFirstDate" type="date" />
         </div>
-
-        <div class="field">
-          <label>Har oy (auto)</label>
-          <input id="genPerMonth" disabled />
+        <div class="f">
+          <label>Hisoblangan: Qolgan summa</label>
+          <input id="plRemainPreview" disabled />
         </div>
       </div>
 
-      <div class="smallNote" id="genRemainderNote"></div>
-      <div class="err" id="genErr"></div>
-
-      <div class="hint">
-        Create bosilganda har oy uchun SPA item yaratiladi va Deal ID ga bog‘lanadi.
+      <div class="note">
+        Plan saqlangach, operator “+” orqali istalgan sanada istalgan summani kiritadi. Remaining avtomatik = Total - Paid.
       </div>
+      <div class="err" id="plErr"></div>
     </div>
-    <div class="modalFoot">
-      <button id="btnCancelGenerate">Cancel</button>
-      <button id="btnDoGenerate" class="primary">Create</button>
+    <div class="mfoot">
+      <button class="btn" id="btnCancelPlan">Cancel</button>
+      <button class="btn primary" id="btnDoPlan">Create plan</button>
     </div>
   </div>
 </div>
 
 <script>
-(function () {
-  // =========================
-  // Helpers
-  // =========================
-  const LS_KEY = "muddatli_tolov_cfg_v3";
+(function(){
+  const $ = (id)=>document.getElementById(id);
 
-  function $(id){ return document.getElementById(id); }
-
-  function setText(id, value){
-    const el = $(id);
-    if (!el) return;
-    el.textContent = value ?? "";
-  }
-
-  function setError(msg){ setText("err", msg ? String(msg) : ""); }
-  function setStatus(msg){ setText("status", msg ? String(msg) : ""); }
-
-  function openModal(id){ const m = $(id); if (m) m.style.display = "flex"; }
-  function closeModal(id){ const m = $(id); if (m) m.style.display = "none"; }
-
-  function formatSom(n){
-    const x = Number(n || 0);
-    if (!isFinite(x)) return "0 so'm";
-    return x.toLocaleString("ru-RU") + " so'm";
-  }
-
-  function parseMoney(str){
-    if (str == null) return 0;
-    const s = String(str).replace(/[^\d]/g, "");
-    return s ? Number(s) : 0;
-  }
-
-  function isoDate(d){
-    const yy = d.getFullYear();
-    const mm = String(d.getMonth()+1).padStart(2,"0");
-    const dd = String(d.getDate()).padStart(2,"0");
-    return `${yy}-${mm}-${dd}`;
-  }
-
-  function todayISO(){ return isoDate(new Date()); }
-
-  function addMonths(yyyyMmDd, add){
-    const [y,m,d] = yyyyMmDd.split("-").map(x=>parseInt(x,10));
-    const dt = new Date(Date.UTC(y, m-1, d));
-    dt.setUTCMonth(dt.getUTCMonth() + add);
-    return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,"0")}-${String(dt.getUTCDate()).padStart(2,"0")}`;
-  }
-
-  function dateToNum(yyyyMmDd){ return Number(String(yyyyMmDd || "").replaceAll("-","")); }
-
-  // =========================
-  // DEFAULT CONFIG (SIZ BERGAN QIYMATLAR)
-  // MUHIM: kalitlar spaTitle/parentField/... bo'lishi shart
-  // =========================
-  const DEFAULTS = {
-    spaTitle: "MUDDATLI TO'LOV",
-    parentField: "parentId2",
-    dueField: "UF_CRM_15_1768516812",
-    amountField: "UF_CRM_15_1768516945",
-    instField: "UF_CRM_15_1768516987",
-    stagePending: "DT1058_19:UC_9HOY6X",
-    stagePaid: "DT1058_19:SUCCESS",
-    yellowDays: 3
+  const APP_KEYS = {
+    SETTINGS: "mt_settings_v1",
+    COURSES: "mt_courses_v1",
   };
 
-  function loadCfg(){
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return { ...DEFAULTS };
-    try{
-      const obj = JSON.parse(raw) || {};
-      return { ...DEFAULTS, ...obj }; // DEFAULT + user
-    } catch {
-      return { ...DEFAULTS };
-    }
+  // DEFAULT: kurslar (admin’da keyin o‘zgartirasiz)
+  const DEFAULT_COURSES = [
+    { id:"course1", name:"Kurs 1", price:1000000, terms:[3,6,12] },
+    { id:"course2", name:"Kurs 2", price:2000000, terms:[3,6] }
+  ];
+
+  // DEFAULT SETTINGS (sizning portalga moslab keyin admin’da to‘ldirasiz)
+  const DEFAULT_SETTINGS = {
+    planSpaTitle: "MUDDATLI TO'LOV",
+    paySpaTitle: "TO'LOVLAR",
+    parentField: "parentId2",
+    // plan fields (bularni admin’da real field code bilan to‘ldirasiz)
+    planTotalField: "UF_CRM_15_1768516945", // vaqtincha amount fieldingizdan foydalandik
+    planCourseField: "UF_CRM_15_1768516987", // vaqtincha installment fieldingizdan foydalandik
+    // payment fields (create qilgan Payment SPA field codes)
+    payAmountField: "",
+    payDateField: "",
+    payCommentField: ""
+  };
+
+  function showErr(msg){ $("err").textContent = msg ? String(msg) : ""; }
+  function status(msg){ $("status").textContent = msg ? String(msg) : ""; }
+
+  function openMask(id){ $(id).style.display="flex"; }
+  function closeMask(id){ $(id).style.display="none"; }
+
+  function money(n){
+    const x=Number(n||0);
+    return (isFinite(x)? x.toLocaleString("ru-RU"): "0") + " so‘m";
+  }
+  function parseMoney(v){
+    const s=String(v||"").replace(/[^\d]/g,"");
+    return s? Number(s): 0;
+  }
+  function todayISO(){
+    const d=new Date();
+    const y=d.getFullYear();
+    const m=String(d.getMonth()+1).padStart(2,"0");
+    const dd=String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${dd}`;
   }
 
-  function saveCfg(cfg){
-    localStorage.setItem(LS_KEY, JSON.stringify(cfg));
-  }
-
-  function cfgToUI(cfg){
-    $("cfgSpaTitle").value = cfg.spaTitle || "";
-    $("cfgParentField").value = cfg.parentField || "";
-    $("cfgDueField").value = cfg.dueField || "";
-    $("cfgAmountField").value = cfg.amountField || "";
-    $("cfgInstField").value = cfg.instField || "";
-    $("cfgStagePending").value = cfg.stagePending || "";
-    $("cfgStagePaid").value = cfg.stagePaid || "";
-    $("cfgYellowDays").value = String(cfg.yellowDays ?? 3);
-  }
-
-  function uiToCfg(){
-    return {
-      spaTitle: $("cfgSpaTitle").value.trim(),
-      parentField: $("cfgParentField").value.trim(),
-      dueField: $("cfgDueField").value.trim(),
-      amountField: $("cfgAmountField").value.trim(),
-      instField: $("cfgInstField").value.trim(),
-      stagePending: $("cfgStagePending").value.trim(),
-      stagePaid: $("cfgStagePaid").value.trim(),
-      yellowDays: Number($("cfgYellowDays").value || 0)
-    };
-  }
-
-  function validateCfg(cfg){
-    const required = ["spaTitle","parentField","dueField","amountField","instField","stagePending","stagePaid"];
-    for (const k of required){
-      if (!cfg[k]) throw new Error("Settings to‘liq emas: " + k + " bo‘sh.");
-    }
-  }
-
-  // =========================
-  // Bitrix REST helpers
-  // =========================
+  // --- BX24 wrappers
   function bxCall(method, params){
-    return new Promise((resolve, reject)=>{
+    return new Promise((resolve,reject)=>{
       BX24.callMethod(method, params, function(res){
-        if (res.error()){
-          reject(new Error(method + ": " + res.error() + " " + (res.error_description() || "")));
+        if(res.error()){
+          reject(new Error(method + ": " + res.error() + " " + (res.error_description()||"")));
           return;
         }
         resolve(res.data());
@@ -401,376 +362,472 @@
   }
 
   function bxCallAll(method, params){
-    return new Promise((resolve, reject)=>{
-      const all = [];
+    return new Promise((resolve,reject)=>{
+      const all=[];
       BX24.callMethod(method, params, function(res){
-        if (res.error()){
-          reject(new Error(method + ": " + res.error() + " " + (res.error_description() || "")));
+        if(res.error()){
+          reject(new Error(method + ": " + res.error() + " " + (res.error_description()||"")));
           return;
         }
-        const data = res.data();
-        if (Array.isArray(data)) all.push(...data);
-        if (res.more()) res.next();
+        const d=res.data();
+        if(Array.isArray(d)) all.push(...d);
+        if(res.more()) res.next();
         else resolve(all);
       });
     });
   }
 
-  async function getDealIdFromPlacement(){
+  function appOptionGet(key, fallback){
+    return new Promise((resolve)=>{
+      BX24.appOption.get(key, function(value){
+        if(value == null || value === ""){
+          resolve(fallback);
+          return;
+        }
+        try{ resolve(JSON.parse(value)); }catch(e){ resolve(fallback); }
+      });
+    });
+  }
+  function appOptionSet(key, obj){
+    return new Promise((resolve,reject)=>{
+      BX24.appOption.set(key, JSON.stringify(obj), function(res){
+        if(res && res.error && res.error()){
+          reject(new Error("appOption.set: " + res.error()));
+          return;
+        }
+        resolve(true);
+      });
+    });
+  }
+
+  // Deal ID robust
+  async function getDealId(){
     const info = await new Promise((resolve)=>BX24.placement.info(resolve));
-    const opts = info && info.options ? info.options : {};
-    const id =
-      opts.ID || opts.id || opts.ENTITY_ID || opts.entityId ||
-      (opts.ENTITY && (opts.ENTITY.ID || opts.ENTITY.id)) ||
-      opts.DEAL_ID || null;
-    return id ? Number(id) : null;
+    const opts = (info && info.options) ? info.options : {};
+    const candidates = [
+      opts.ID, opts.id,
+      opts.ENTITY_ID, opts.entityId,
+      opts.ENTITY_VALUE_ID, opts.entityValueId,
+      opts.DEAL_ID, opts.dealId,
+      opts.OWNER_ID, opts.ownerId
+    ].filter(Boolean);
+
+    if(candidates.length) return Number(candidates[0]);
+
+    // ba'zi joylarda opts.ENTITY ichida bo‘ladi
+    if(opts.ENTITY && (opts.ENTITY.ID || opts.ENTITY.id)) return Number(opts.ENTITY.ID || opts.ENTITY.id);
+
+    return null;
   }
 
   async function resolveEntityTypeIdByTitle(title){
-    const list = await bxCallAll("crm.type.list", { order: { id: "ASC" } });
-    const t = String(title || "").trim().toLowerCase();
-    const found = list.find(x => String(x.title || "").trim().toLowerCase() === t);
-    if (!found){
-      throw new Error("SPA topilmadi: crm.type.list ichida '" + title + "' yo‘q. SPA nomini tekshiring.");
+    const list = await bxCallAll("crm.type.list", { order:{ id:"ASC" }});
+    const t=String(title||"").trim().toLowerCase();
+    const f=list.find(x=>String(x.title||"").trim().toLowerCase()===t);
+    if(!f) throw new Error("SPA topilmadi: '" + title + "'. CRM → Smart Process sozlamasidan aniq nomini tekshiring.");
+    return f.entityTypeId || f.id;
+  }
+
+  // Data loaders
+  let dealId=null;
+  let cfg=null;
+  let courses=null;
+
+  let planEntityTypeId=null;
+  let payEntityTypeId=null;
+
+  async function ensureConfig(){
+    cfg = await appOptionGet(APP_KEYS.SETTINGS, DEFAULT_SETTINGS);
+    // UI fill
+    $("cfgPlanTitle").value = cfg.planSpaTitle || "";
+    $("cfgPayTitle").value = cfg.paySpaTitle || "";
+    $("cfgParentField").value = cfg.parentField || "";
+    $("cfgPlanTotalField").value = cfg.planTotalField || "";
+    $("cfgPlanCourseField").value = cfg.planCourseField || "";
+    $("cfgPayAmountField").value = cfg.payAmountField || "";
+    $("cfgPayDateField").value = cfg.payDateField || "";
+    $("cfgPayCommentField").value = cfg.payCommentField || "";
+  }
+
+  async function ensureCourses(){
+    courses = await appOptionGet(APP_KEYS.COURSES, DEFAULT_COURSES);
+    // Plan modal select
+    const sel=$("plCourse");
+    sel.innerHTML="";
+    for(const c of courses){
+      const o=document.createElement("option");
+      o.value=c.id;
+      o.textContent=c.name;
+      sel.appendChild(o);
     }
-    return found.entityTypeId || found.id;
   }
 
-  // =========================
-  // State
-  // =========================
-  let calendar = null;
-  let dealId = null;
-  let entityTypeId = null;
-  let currentEvents = [];
-
-  function computeStatus(cfg, item){
-    const due = String(item[cfg.dueField] || "").substring(0,10);
-    const paid = item.stageId === cfg.stagePaid;
-    const today = dateToNum(todayISO());
-    const dueN = due ? dateToNum(due) : 0;
-
-    if (paid) return "paid";
-    if (!due) return "expected";
-    if (dueN < today) return "overdue";
-
-    const yellowDays = Number(cfg.yellowDays || 0);
-    if (yellowDays > 0){
-      const dtToday = new Date(todayISO() + "T00:00:00");
-      const dtDue = new Date(due + "T00:00:00");
-      const diffDays = Math.floor((dtDue - dtToday) / (1000*60*60*24));
-      if (diffDays <= yellowDays) return "near";
-    }
-    return "expected";
+  function getCourseById(id){
+    return (courses||[]).find(x=>x.id===id) || null;
   }
 
-  function statusColor(st){
-    if (st === "paid") return "var(--green)";
-    if (st === "near") return "var(--yellow)";
-    if (st === "overdue") return "var(--red)";
-    return "var(--blue)";
-  }
+  async function loadPlan(){
+    // MVP: Plan SPA ichidan dealId bo‘yicha 1 ta active plan topamiz (eng oxirgisi)
+    if(!cfg.planSpaTitle) throw new Error("Settings: Plan SPA title bo‘sh.");
+    if(!cfg.parentField) throw new Error("Settings: parentField bo‘sh.");
 
-  function updateAnalytics(){
-    let paidSum = 0, expSum = 0, overSum = 0, count = 0;
+    if(!planEntityTypeId) planEntityTypeId = await resolveEntityTypeIdByTitle(cfg.planSpaTitle);
 
-    for (const e of currentEvents){
-      count++;
-      const amt = Number(e.extendedProps.amount || 0);
-      const st = e.extendedProps.status;
-      if (st === "paid") paidSum += amt;
-      else if (st === "overdue") overSum += amt;
-      else expSum += amt;
-    }
-    const total = paidSum + expSum + overSum;
-
-    setText("anaPaid", formatSom(paidSum));
-    setText("anaExpected", formatSom(expSum));
-    setText("anaOverdue", formatSom(overSum));
-    setText("anaTotal", formatSom(total));
-    setText("anaCount", count + " ta");
-
-    const pct = (v)=> total>0 ? Math.round((v/total)*100) : 0;
-    $("barPaid").style.width = pct(paidSum) + "%";
-    $("barExpected").style.width = pct(expSum) + "%";
-    $("barOverdue").style.width = pct(overSum) + "%";
-  }
-
-  async function loadToCalendar(){
-    const cfg = loadCfg();
-    validateCfg(cfg);
-
-    setError("");
-    setStatus("Loading…");
-
-    if (!dealId) throw new Error("Deal ID olinmadi. Widget faqat Deal ichida ishlaydi.");
-    if (!entityTypeId) entityTypeId = await resolveEntityTypeIdByTitle(cfg.spaTitle);
-
-    const filter = {};
-    filter[cfg.parentField] = dealId;
+    const filter={};
+    filter[cfg.parentField]=dealId;
 
     const items = await bxCallAll("crm.item.list", {
-      entityTypeId,
+      entityTypeId: planEntityTypeId,
       filter,
-      select: ["id","title","stageId", cfg.dueField, cfg.amountField, cfg.instField]
+      order: { id:"DESC" },
+      select: ["id","title", cfg.planTotalField, cfg.planCourseField]
     });
 
-    const events = [];
-    for (const it of items){
-      const due = String(it[cfg.dueField] || "").substring(0,10);
-      if (!due) continue;
+    return items.length ? items[0] : null;
+  }
 
-      const amt = Number(it[cfg.amountField] || 0);
-      const inst = String(it[cfg.instField] || "");
-      const st = computeStatus(cfg, it);
+  async function loadPayments(planId){
+    // Payment SPA ishlashi uchun cfg.paySpaTitle va payment fieldlar to‘liq bo‘lishi kerak
+    if(!cfg.paySpaTitle) return [];
+    if(!cfg.payAmountField || !cfg.payDateField) return [];
 
-      events.push({
-        id: String(it.id),
-        title: inst,
-        start: due,
-        allDay: true,
-        extendedProps: {
-          amount: amt,
-          installment: inst,
-          status: st,
-          stageId: it.stageId
-        }
-      });
+    if(!payEntityTypeId) payEntityTypeId = await resolveEntityTypeIdByTitle(cfg.paySpaTitle);
+
+    const filter={};
+    filter[cfg.parentField]=dealId; // payment ham dealga bog‘lanadi
+
+    const items = await bxCallAll("crm.item.list", {
+      entityTypeId: payEntityTypeId,
+      filter,
+      order: { [cfg.payDateField]:"DESC", id:"DESC" },
+      select: ["id","title", cfg.payAmountField, cfg.payDateField, cfg.payCommentField]
+    });
+
+    // Agar planId bo‘yicha ajratmoqchi bo‘lsangiz: Payment SPA ga planId field qo‘shib filter qiling
+    return items || [];
+  }
+
+  function sumPayments(payments){
+    let s=0;
+    for(const p of payments){
+      s += Number(p[cfg.payAmountField] || 0);
     }
-
-    currentEvents = events;
-
-    calendar.removeAllEvents();
-    calendar.addEventSource(events);
-
-    updateAnalytics();
-    setStatus("Loaded: " + events.length);
+    return s;
   }
 
-  async function markPaid(itemId){
-    const cfg = loadCfg();
-    validateCfg(cfg);
-    if (!entityTypeId) entityTypeId = await resolveEntityTypeIdByTitle(cfg.spaTitle);
+  function renderPayments(payments){
+    const tb=$("payBody");
+    tb.innerHTML="";
+    $("payCount").textContent = (payments.length||0) + " ta";
 
-    await bxCall("crm.item.update", {
-      entityTypeId,
-      id: Number(itemId),
-      fields: { stageId: cfg.stagePaid }
-    });
-  }
-
-  async function generateSchedule(){
-    const cfg = loadCfg();
-    validateCfg(cfg);
-
-    const months = Number($("genMonths").value || 0);
-    const start = $("genStart").value; // YYYY-MM-DD
-    const total = parseMoney($("genTotal").value);
-
-    if (!months || months < 1) throw new Error("Months noto‘g‘ri.");
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(start)) throw new Error("Start date noto‘g‘ri.");
-    if (!total || total <= 0) throw new Error("Total amount noto‘g‘ri.");
-    if (!dealId) throw new Error("Deal ID yo‘q.");
-
-    if (!entityTypeId) entityTypeId = await resolveEntityTypeIdByTitle(cfg.spaTitle);
-
-    setStatus("Creating items…");
-
-    const per = Math.floor(total / months);
-    const rem = total - per * months;
-
-    for (let i=1; i<=months; i++){
-      const due = addMonths(start, i-1);
-      const amt = per + (i === months ? rem : 0);
-      const inst = `${i}/${months}`;
-
-      const fields = {};
-      fields[cfg.dueField] = due;
-      fields[cfg.amountField] = amt;
-      fields[cfg.instField] = inst;
-      fields.stageId = cfg.stagePending;
-      fields[cfg.parentField] = dealId;
-
-      await bxCall("crm.item.add", { entityTypeId, fields });
-    }
-
-    setStatus("Created: " + months);
-  }
-
-  function initCalendar(){
-    calendar = new FullCalendar.Calendar($("calendar"), {
-      initialView: "dayGridMonth",
-      height: "auto",
-      headerToolbar: { left: "prev,next today", center: "title", right: "" },
-
-      eventContent: function(arg){
-        const st = arg.event.extendedProps.status;
-        const amt = arg.event.extendedProps.amount;
-        const inst = arg.event.extendedProps.installment || arg.event.title;
-
-        const wrap = document.createElement("div");
-        wrap.className = "evt";
-        wrap.style.background = statusColor(st);
-
-        const left = document.createElement("span");
-        left.textContent = inst;
-
-        const right = document.createElement("span");
-        right.className = "amt";
-        right.textContent = Number(amt||0).toLocaleString("ru-RU"); // so'm format (raqam)
-
-        wrap.appendChild(left);
-        wrap.appendChild(right);
-
-        return { domNodes: [wrap] };
-      },
-
-      eventClick: async function(info){
-        try{
-          setError("");
-          const st = info.event.extendedProps.status;
-          if (st === "paid") return;
-
-          const ok = confirm("Bu to‘lovni PAID qilishni xohlaysizmi?");
-          if (!ok) return;
-
-          setStatus("Updating…");
-          await markPaid(info.event.id);
-          await loadToCalendar();
-          setStatus("Updated");
-        } catch(e){
-          setStatus("");
-          setError(e?.message || String(e));
-        }
-      }
-    });
-
-    calendar.render();
-  }
-
-  // =========================
-  // UI wiring
-  // =========================
-  function recalcGeneratePreview(){
-    const months = Number($("genMonths").value || 0);
-    const total = parseMoney($("genTotal").value);
-    if (!months || months < 1 || !total){
-      $("genPerMonth").value = "";
-      setText("genRemainderNote", "");
+    if(!payments.length){
+      const tr=document.createElement("tr");
+      tr.innerHTML = `<td colspan="4" class="mini">Hali to‘lov yo‘q.</td>`;
+      tb.appendChild(tr);
       return;
     }
-    const per = Math.floor(total / months);
-    const rem = total - per * months;
-    $("genPerMonth").value = formatSom(per);
-    setText("genRemainderNote", rem ? ("Oxirgi oyga qo‘shimcha: " + formatSom(rem)) : "");
-  }
 
-  function moneyMaskInput(el){
-    el.addEventListener("input", ()=>{
-      const n = parseMoney(el.value);
-      el.value = n ? n.toLocaleString("ru-RU") : "";
-      recalcGeneratePreview();
+    for(const p of payments){
+      const id=p.id;
+      const dt=String(p[cfg.payDateField]||"").substring(0,10) || "—";
+      const amt=Number(p[cfg.payAmountField]||0);
+      const cm=cfg.payCommentField ? (p[cfg.payCommentField]||"") : "";
+
+      const tr=document.createElement("tr");
+      tr.innerHTML = `
+        <td>${dt}</td>
+        <td><b>${money(amt)}</b></td>
+        <td>${String(cm||"")}</td>
+        <td>
+          <div class="act">
+            <button class="linkbtn" data-act="edit" data-id="${id}">✏️</button>
+            <button class="mutebtn danger" data-act="del" data-id="${id}">🗑️</button>
+          </div>
+        </td>
+      `;
+      tb.appendChild(tr);
+    }
+
+    tb.querySelectorAll("button[data-act]").forEach(btn=>{
+      btn.onclick = async ()=>{
+        const act=btn.getAttribute("data-act");
+        const id=btn.getAttribute("data-id");
+        if(act==="del") await deletePayment(id);
+        if(act==="edit") await editPayment(id);
+      };
     });
   }
 
-  function bindButtons(){
-    $("btnRefresh").onclick = async ()=>{
-      try{ setError(""); await loadToCalendar(); }
-      catch(e){ setError(e?.message || String(e)); }
-    };
+  async function refreshAll(){
+    showErr("");
+    status("Loading…");
 
-    $("btnSettings").onclick = ()=>{
-      const cfg = loadCfg();
-      cfgToUI(cfg);
-      openModal("mSettings");
-    };
+    $("pillDeal").textContent = "Deal: #" + dealId;
 
-    $("btnCloseSettings").onclick = ()=>closeModal("mSettings");
-    $("btnCancelSettings").onclick = ()=>closeModal("mSettings");
+    const plan = await loadPlan();
+    if(!plan){
+      $("pillPlan").textContent = "Plan: yo‘q";
+      $("stCourse").textContent = "—";
+      $("stTotal").textContent = money(0);
+      $("stPaid").textContent = money(0);
+      $("stRemain").textContent = money(0);
+      $("planHint").textContent = "Avval 🧮 orqali plan yarating.";
+      renderPayments([]);
+      status("Ready");
+      return;
+    }
+
+    $("pillPlan").textContent = "Plan: #" + plan.id;
+
+    const total = Number(plan[cfg.planTotalField] || 0);
+
+    // Course: agar planCourseField ga kursId yoki nom yozsangiz
+    const courseVal = String(plan[cfg.planCourseField] || "");
+    const c = getCourseById(courseVal);
+    const courseName = c ? c.name : (courseVal || "—");
+
+    $("stCourse").textContent = courseName;
+    $("stTotal").textContent = money(total);
+
+    const payments = await loadPayments(plan.id);
+    const paid = sumPayments(payments);
+    const remain = Math.max(0, total - paid);
+
+    $("stPaid").textContent = money(paid);
+    $("stRemain").textContent = money(remain);
+    $("planHint").textContent = (cfg.payAmountField ? "" : "Payment SPA fieldlari settings’da to‘ldirilmagan.");
+
+    renderPayments(payments);
+
+    status("Ready");
+  }
+
+  // CRUD: Plan
+  async function createPlan(){
+    const courseId=$("plCourse").value;
+    const course=getCourseById(courseId);
+    if(!course) throw new Error("Kurs topilmadi.");
+
+    const price=Number(course.price||0);
+    const prepay=parseMoney($("plPrepay").value);
+    const months=Number($("plMonths").value||0);
+    const firstDate=$("plFirstDate").value;
+
+    if(!months || months<1) throw new Error("Muddat (oy) noto‘g‘ri.");
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(firstDate)) throw new Error("Birinchi to‘lov sanasi noto‘g‘ri.");
+
+    const total=Math.max(0, price - prepay);
+
+    if(!planEntityTypeId) planEntityTypeId = await resolveEntityTypeIdByTitle(cfg.planSpaTitle);
+
+    const fields={};
+    fields[cfg.parentField]=dealId;
+    fields[cfg.planTotalField]=total;
+    fields[cfg.planCourseField]=courseId; // kursId saqlaymiz
+
+    await bxCall("crm.item.add", { entityTypeId: planEntityTypeId, fields });
+  }
+
+  async function deletePlan(){
+    const plan = await loadPlan();
+    if(!plan){ alert("Plan yo‘q."); return; }
+    const ok=confirm("Plan’ni o‘chirmoqchimisiz? (Kurs bo‘yicha umumiy rejani o‘chiradi)");
+    if(!ok) return;
+    if(!planEntityTypeId) planEntityTypeId = await resolveEntityTypeIdByTitle(cfg.planSpaTitle);
+    await bxCall("crm.item.delete", { entityTypeId: planEntityTypeId, id: Number(plan.id) });
+  }
+
+  // CRUD: Payment
+  async function addPayment(){
+    if(!cfg.paySpaTitle) throw new Error("Payment SPA title settings’da yo‘q.");
+    if(!cfg.payAmountField || !cfg.payDateField) throw new Error("Payment fieldlar (amount/date) settings’da to‘ldirilmagan.");
+
+    const date=$("payDate").value;
+    const amt=parseMoney($("payAmount").value);
+    const com=$("payComment").value.trim();
+
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Sana noto‘g‘ri.");
+    if(!amt || amt<=0) throw new Error("Summa noto‘g‘ri.");
+
+    if(!payEntityTypeId) payEntityTypeId = await resolveEntityTypeIdByTitle(cfg.paySpaTitle);
+
+    const fields={};
+    fields[cfg.parentField]=dealId;
+    fields[cfg.payAmountField]=amt;
+    fields[cfg.payDateField]=date;
+    if(cfg.payCommentField) fields[cfg.payCommentField]=com;
+
+    await bxCall("crm.item.add", { entityTypeId: payEntityTypeId, fields });
+  }
+
+  async function deletePayment(id){
+    const ok=confirm("To‘lovni o‘chirmoqchimisiz?");
+    if(!ok) return;
+    if(!payEntityTypeId) payEntityTypeId = await resolveEntityTypeIdByTitle(cfg.paySpaTitle);
+    await bxCall("crm.item.delete", { entityTypeId: payEntityTypeId, id: Number(id) });
+    await refreshAll();
+  }
+
+  async function editPayment(id){
+    // MVP edit: prompt orqali (xohlasangiz modal qilib beramiz)
+    const newAmt = prompt("Yangi summa (so‘m):");
+    if(newAmt==null) return;
+    const amt=parseMoney(newAmt);
+    if(!amt || amt<=0){ alert("Summa noto‘g‘ri."); return; }
+
+    const newDate = prompt("Yangi sana (YYYY-MM-DD):");
+    if(newDate==null) return;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(newDate)){ alert("Sana noto‘g‘ri."); return; }
+
+    if(!payEntityTypeId) payEntityTypeId = await resolveEntityTypeIdByTitle(cfg.paySpaTitle);
+
+    const fields={};
+    fields[cfg.payAmountField]=amt;
+    fields[cfg.payDateField]=newDate;
+
+    await bxCall("crm.item.update", { entityTypeId: payEntityTypeId, id: Number(id), fields });
+    await refreshAll();
+  }
+
+  // UI hooks
+  function wire(){
+    $("btnRefresh").onclick = ()=>refreshAll().catch(e=>showErr(e.message||String(e)));
+
+    $("btnSettings").onclick = ()=>{ $("cfgErr").textContent=""; openMask("mSettings"); };
+    $("btnCloseSettings").onclick = ()=>closeMask("mSettings");
+    $("btnCancelSettings").onclick = ()=>closeMask("mSettings");
 
     $("btnSaveSettings").onclick = async ()=>{
       try{
-        const cfg = uiToCfg();
-        validateCfg(cfg);
-        saveCfg(cfg);
-        entityTypeId = null;
-        closeModal("mSettings");
-        await loadToCalendar();
-      } catch(e){
-        setError(e?.message || String(e));
+        const s={
+          planSpaTitle: $("cfgPlanTitle").value.trim(),
+          paySpaTitle: $("cfgPayTitle").value.trim(),
+          parentField: $("cfgParentField").value.trim(),
+          planTotalField: $("cfgPlanTotalField").value.trim(),
+          planCourseField: $("cfgPlanCourseField").value.trim(),
+          payAmountField: $("cfgPayAmountField").value.trim(),
+          payDateField: $("cfgPayDateField").value.trim(),
+          payCommentField: $("cfgPayCommentField").value.trim()
+        };
+        await appOptionSet(APP_KEYS.SETTINGS, s);
+        cfg=s;
+        // reset caches
+        planEntityTypeId=null;
+        payEntityTypeId=null;
+        closeMask("mSettings");
+        await refreshAll();
+      }catch(e){
+        $("cfgErr").textContent = e.message||String(e);
       }
     };
 
-    $("btnGenerate").onclick = ()=>{
-      $("genStart").value = todayISO();
-      $("genMonths").value = "12";
-      $("genTotal").value = "";
-      $("genPerMonth").value = "";
-      setText("genRemainderNote", "");
-      setText("genErr", "");
-      openModal("mGenerate");
+    // payment modal
+    $("btnPay").onclick = ()=>{
+      $("payErr").textContent="";
+      $("payDate").value=todayISO();
+      $("payAmount").value="";
+      $("payComment").value="";
+      openMask("mPay");
     };
-
-    $("btnCloseGenerate").onclick = ()=>closeModal("mGenerate");
-    $("btnCancelGenerate").onclick = ()=>closeModal("mGenerate");
-
-    $("btnDoGenerate").onclick = async ()=>{
+    $("btnClosePay").onclick = ()=>closeMask("mPay");
+    $("btnCancelPay").onclick = ()=>closeMask("mPay");
+    $("btnDoPay").onclick = async ()=>{
       try{
-        setText("genErr", "");
-        $("btnDoGenerate").disabled = true;
-        await generateSchedule();
-        closeModal("mGenerate");
-        await loadToCalendar();
-      } catch(e){
-        setText("genErr", e?.message || String(e));
-      } finally {
-        $("btnDoGenerate").disabled = false;
+        $("payErr").textContent="";
+        $("btnDoPay").disabled=true;
+        await addPayment();
+        closeMask("mPay");
+        await refreshAll();
+      }catch(e){
+        $("payErr").textContent=e.message||String(e);
+      }finally{
+        $("btnDoPay").disabled=false;
       }
     };
 
-    $("genMonths").addEventListener("input", recalcGeneratePreview);
-    moneyMaskInput($("genTotal"));
+    // plan modal
+    $("btnPlan").onclick = ()=>{
+      $("plErr").textContent="";
+      $("plPrepay").value="";
+      $("plMonths").value="6";
+      $("plFirstDate").value=todayISO();
+      openMask("mPlan");
+      updatePlanPreview();
+    };
+    $("btnClosePlan").onclick = ()=>closeMask("mPlan");
+    $("btnCancelPlan").onclick = ()=>closeMask("mPlan");
+    $("btnDoPlan").onclick = async ()=>{
+      try{
+        $("plErr").textContent="";
+        $("btnDoPlan").disabled=true;
+        await createPlan();
+        closeMask("mPlan");
+        await refreshAll();
+      }catch(e){
+        $("plErr").textContent=e.message||String(e);
+      }finally{
+        $("btnDoPlan").disabled=false;
+      }
+    };
+
+    $("btnDeletePlan").onclick = async ()=>{
+      try{
+        await deletePlan();
+        await refreshAll();
+      }catch(e){
+        showErr(e.message||String(e));
+      }
+    };
+
+    // course change
+    $("plCourse").onchange = updatePlanPreview;
+    $("plPrepay").oninput = updatePlanPreview;
   }
 
-  // =========================
+  function updatePlanPreview(){
+    const id=$("plCourse").value;
+    const c=getCourseById(id);
+    if(!c){ $("plCoursePrice").value=""; $("plRemainPreview").value=""; return; }
+    const pre=parseMoney($("plPrepay").value);
+    const total=Math.max(0, Number(c.price||0) - pre);
+    $("plCoursePrice").value = money(c.price||0);
+    $("plRemainPreview").value = money(total);
+  }
+
   // Boot
-  // =========================
-  BX24.init(async function(){
-    try{
-      setError("");
-      setStatus("Init…");
-
-      initCalendar();
-      bindButtons();
-
-      // Settings default to'ldirish (siz bergan qiymatlar bilan)
-      const cfg = loadCfg();
-      cfgToUI(cfg);
-
-      dealId = await getDealIdFromPlacement();
-      if (!dealId) throw new Error("Deal ID olinmadi. Widget faqat Deal ichida (CRM Deal) ishlaydi.");
-
-      await loadToCalendar();
-      setStatus("Ready");
-    } catch(e){
-      setStatus("");
-      setError(e?.message || String(e));
+  (async function boot(){
+    const ok = await window.__bxReady;
+    if(!ok){
+      showErr("BX24 yuklanmadi. Iltimos HTTPS hosting va Bitrix24 iframe’da ochilayotganini tekshiring.");
+      return;
     }
-  });
 
-  BX24.init(function() {
-    BX24.placement.info(function(info) {
-      const dealId = info.options.ID || info.options.id || info.options.ENTITY_ID || info.options.entityId || info.options.DEAL_ID || info.options["ENTITY.ID"];
-      if (dealId) {
-        console.log("Deal ID:", dealId);
-        // Load data for the Deal ID
-      } else {
-        console.error("Deal ID not found in placement info.");
+    BX24.init(async function(){
+      try{
+        status("Init…");
+        showErr("");
+
+        dealId = await getDealId();
+        if(!dealId){
+          showErr("Deal ID olinmadi. Widget faqat Deal ichida ishlaydi.");
+          status("");
+          return;
+        }
+
+        await ensureConfig();
+        await ensureCourses();
+
+        wire();
+        await refreshAll();
+
+      }catch(e){
+        showErr(e.message||String(e));
+        status("");
       }
     });
-  });
+  })();
+
 })();
 </script>
-
 </body>
 </html>
