@@ -2,43 +2,80 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Install - MUDDATLI TO'LOV</title>
+  <title>Install - Muddatli To'lov</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://api.bitrix24.com/api/v1/"></script>
+  <style>
+    body{font-family:Arial,sans-serif;padding:16px}
+    .ok{color:#0a0}
+    .err{color:#b00;white-space:pre-wrap}
+  </style>
 </head>
 <body>
-  <div style="font-family: Arial; padding: 12px;">Installing…</div>
+  <h3>Installing…</h3>
+  <div id="out"></div>
 
 <script>
-(function () {
-  function getBaseUrl() {
-    // install.html qayerda turgan bo'lsa, shu papkani base qilamiz
+(function(){
+  const out = document.getElementById('out');
+  const log = (t, cls) => {
+    const d=document.createElement('div');
+    d.className=cls||'';
+    d.textContent=t;
+    out.appendChild(d);
+  };
+
+  function bxCall(method, params){
+    return new Promise((resolve, reject)=>{
+      BX24.callMethod(method, params, function(res){
+        if(res.error()){
+          reject(new Error(method + ": " + res.error() + " " + (res.error_description()||"")));
+          return;
+        }
+        resolve(res.data());
+      });
+    });
+  }
+
+  function baseUrl(){
+    // install.html turgan joydan base aniqlaymiz
     const u = new URL(window.location.href);
     u.pathname = u.pathname.replace(/\/[^\/]*$/, "/");
     return u.toString();
   }
 
-  BX24.init(function () {
-    const base = getBaseUrl();
-    const handler = base + "index.html"; // asosiy widget
+  BX24.init(async function(){
+    try{
+      const base = baseUrl();
+      const handlerDeal = base + "index.html";
+      const handlerAdmin = base + "admin.html";
 
-    BX24.callMethod(
-      "placement.bind",
-      {
+      // 1) Deal detail tab
+      // Oldin bind bo'lgan bo'lsa, 2 ta bo'lib qolmasligi uchun avval unbind qilib ko'ramiz (xato bo'lsa ham davom etamiz)
+      try{ await bxCall("placement.unbind", { PLACEMENT: "CRM_DEAL_DETAIL_TAB", HANDLER: handlerDeal }); } catch(e){}
+
+      await bxCall("placement.bind", {
         PLACEMENT: "CRM_DEAL_DETAIL_TAB",
-        HANDLER: handler,
-        TITLE: "MUDDATLI TO'LOV"
-      },
-      function (res) {
-        if (res.error()) {
-          document.body.innerHTML =
-            "<pre style='color:#b00;white-space:pre-wrap;'>placement.bind error:\n" +
-            (res.error() + " " + (res.error_description() || "")) +
-            "</pre>";
-          return;
-        }
-        BX24.installFinish();
-      }
-    );
+        HANDLER: handlerDeal,
+        TITLE: "MUDDATLI TO'LOV",
+        DESCRIPTION: "Muddatli to'lovlarni boshqarish"
+      });
+
+      // 2) Left menu (Admin)
+      try{ await bxCall("placement.unbind", { PLACEMENT: "LEFT_MENU", HANDLER: handlerAdmin }); } catch(e){}
+
+      await bxCall("placement.bind", {
+        PLACEMENT: "LEFT_MENU",
+        HANDLER: handlerAdmin,
+        TITLE: "Muddatli to'lov — Sozlamalar",
+        DESCRIPTION: "Kurslar, ruxsatlar, voronkalar, statistika"
+      });
+
+      BX24.installFinish();
+      log("OK: placements bound. You can close this tab.", "ok");
+    }catch(e){
+      log("ERROR:\n" + (e && e.message ? e.message : String(e)), "err");
+    }
   });
 })();
 </script>
