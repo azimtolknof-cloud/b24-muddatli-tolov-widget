@@ -2,283 +2,259 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Muddatli To'lov - Admin</title>
+  <title>Muddatli To'lov - Admin Panel</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://api.bitrix24.com/api/v1/"></script>
   <style>
-    :root{--bg:#f6f7f9;--card:#fff;--border:#e6e8ee;--text:#111827;--muted:#6b7280;--blue:#2563eb;--red:#ef4444}
+    :root{--bg:#0b1220;--card:#0f172a;--border:#1f2a44;--text:#e5e7eb;--muted:#94a3b8;--blue:#2563eb}
     body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--text)}
-    .wrap{padding:14px}
-    .grid{display:grid;grid-template-columns:260px 1fr;gap:12px;align-items:start}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px}
-    .h{font-weight:900;margin:0 0 10px}
-    .menu button{width:100%;text-align:left;padding:10px 10px;border:1px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;font-weight:800;margin-bottom:8px}
-    .menu button.active{border-color:var(--blue);color:var(--blue)}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .btn{border:1px solid var(--border);background:#fff;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:800}
+    .wrap{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+    .side{padding:14px;border-right:1px solid var(--border);background:rgba(15,23,42,.75)}
+    .brand{font-weight:900;font-size:16px;margin-bottom:10px}
+    .sub{color:var(--muted);font-size:12px;margin-bottom:14px}
+    .nav{display:flex;flex-direction:column;gap:8px}
+    .nav button{width:100%;text-align:left;border:1px solid var(--border);background:transparent;color:var(--text);padding:10px 12px;border-radius:12px;cursor:pointer;font-weight:800}
+    .nav button.active{background:var(--blue);border-color:var(--blue)}
+    .main{padding:16px}
+    .card{background:#fff;color:#111827;border-radius:14px;padding:14px}
+    h2{margin:0 0 10px}
+    .muted{color:#6b7280;font-size:12px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:10px 0}
+    .f{display:flex;flex-direction:column;gap:6px}
+    .f label{font-size:12px;color:#6b7280}
+    .f input,.f select, textarea{padding:10px 12px;border:1px solid #e6e8ee;border-radius:12px;min-width:220px}
+    textarea{min-width:420px;min-height:90px}
+    .btn{border:1px solid #e6e8ee;background:#fff;padding:10px 12px;border-radius:12px;cursor:pointer;font-weight:900}
     .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
-    .err{color:#b00;white-space:pre-wrap}
-    table{width:100%;border-collapse:collapse}
-    th,td{border-bottom:1px solid var(--border);padding:10px 8px;text-align:left}
-    th{color:var(--muted);font-size:12px}
-    input{padding:10px 12px;border:1px solid var(--border);border-radius:10px;outline:none;width:100%;box-sizing:border-box}
-    .note{color:var(--muted);font-size:12px}
+    .btn.danger{background:#ef4444;border-color:#ef4444;color:#fff}
+    table{width:100%;border-collapse:separate;border-spacing:0 8px;margin-top:10px}
+    tr{background:#f9fafb}
+    td{padding:10px;border-top:1px solid #e6e8ee;border-bottom:1px solid #e6e8ee}
+    td:first-child{border-left:1px solid #e6e8ee;border-top-left-radius:12px;border-bottom-left-radius:12px}
+    td:last-child{border-right:1px solid #e6e8ee;border-top-right-radius:12px;border-bottom-right-radius:12px}
+    .err{color:#b00;white-space:pre-wrap;font-size:13px;margin-top:10px}
   </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="grid">
-    <div class="card menu">
-      <h3 class="h">Admin panel</h3>
-      <button id="mCourses" class="active">Kurslar</button>
-      <button id="mPerms">Ruxsatlar</button>
-      <button id="mPipes">Voronkalar</button>
-      <button id="mStats">Statistika</button>
-      <button id="mApp">App sozlamalari</button>
-      <div class="note">Sozlamalar portal bo‘yicha saqlanadi.</div>
+  <aside class="side">
+    <div class="brand">Admin Panel</div>
+    <div class="sub">Muddatli to‘lov sozlamalari</div>
+    <div class="nav">
+      <button data-tab="courses" class="active">Kurslar</button>
+      <button data-tab="acl">Ruxsatlar</button>
+      <button data-tab="funnels">Voronkalar</button>
+      <button data-tab="stats">Statistika</button>
+      <button data-tab="settings">Sozlamalar</button>
     </div>
+  </aside>
 
+  <main class="main">
     <div class="card">
-      <h3 class="h" id="title">Kurslar</h3>
       <div id="content"></div>
       <div class="err" id="err"></div>
     </div>
-  </div>
+  </main>
 </div>
 
 <script>
 (function(){
-  const APP_KEYS={ SETTINGS:"mt_settings_v1", COURSES:"mt_courses_v1", PERMS:"mt_perms_v1", PIPES:"mt_pipes_v1" };
-  const $=id=>document.getElementById(id);
-  const err=(m)=>$("err").textContent=m?String(m):"";
+  const KEY_COURSES="muddatli_tolov_courses_v1";
+  const KEY_ACL="muddatli_tolov_acl_v1";
+  const KEY_FUNNELS="muddatli_tolov_funnels_v1";
+  const KEY_CFG="muddatli_tolov_app_cfg_v1";
 
-  function appOptionGet(key, fallback){
-    return new Promise((resolve)=>{
-      BX24.appOption.get(key, function(value){
-        if(value==null || value===""){ resolve(fallback); return; }
-        try{ resolve(JSON.parse(value)); }catch(e){ resolve(fallback); }
-      });
-    });
-  }
-  function appOptionSet(key, obj){
+  function $(sel){ return document.querySelector(sel); }
+  function setErr(msg){ $("#err").textContent = msg? String(msg):""; }
+
+  function bxCall(method, params){
     return new Promise((resolve,reject)=>{
-      BX24.appOption.set(key, JSON.stringify(obj), function(res){
-        if(res && res.error && res.error()){ reject(new Error(res.error())); return; }
-        resolve(true);
+      BX24.callMethod(method, params, function(res){
+        if(res.error()) return reject(new Error(method+": "+res.error()+" "+(res.error_description()||"")));
+        resolve(res.data());
       });
     });
   }
 
-  const DEFAULT_COURSES=[
-    { id:"course1", name:"Kurs 1", price:1000000, terms:[3,6,12] },
-    { id:"course2", name:"Kurs 2", price:2000000, terms:[3,6] }
-  ];
-  const DEFAULT_PERMS={
-    // MVP: role-based
-    // admin: full
-    // operator: add/edit own, view own
-    roles:{
-      admin:{ viewAll:true, add:true, edit:true, del:true },
-      operator:{ viewAll:false, add:true, edit:true, del:false }
-    }
-  };
-  const DEFAULT_PIPES={ enabledCategoryIds:[] };
+  async function optGet(key){
+    const v = await bxCall("app.option.get", { option: key });
+    if(!v) return null;
+    try{ return JSON.parse(v); }catch{ return null; }
+  }
+  async function optSet(key, obj){
+    await bxCall("app.option.set", { option: key, value: JSON.stringify(obj) });
+  }
 
+  // --------- tabs render ----------
   async function renderCourses(){
-    $("title").textContent="Kurslar";
-    const courses = await appOptionGet(APP_KEYS.COURSES, DEFAULT_COURSES);
-
+    const data = (await optGet(KEY_COURSES)) || [];
     const html = `
-      <div class="row" style="justify-content:space-between;margin-bottom:10px">
-        <div class="note">Kurs tanlanganda narx va ruxsat etilgan muddatlar avtomatik chiqadi.</div>
-        <button class="btn primary" id="add">+ Kurs qo‘shish</button>
+      <h2>Kurslar</h2>
+      <div class="muted">Kurs nomi, narxi, muddat (3/6/custom) sozlanadi. Deal ichidagi 🧮 kalkulyator shu ro‘yxatdan oladi.</div>
+
+      <div class="row">
+        <div class="f"><label>ID (unique)</label><input id="cId" placeholder="course_1"></div>
+        <div class="f"><label>Nomi</label><input id="cName" placeholder="IELTS"></div>
+        <div class="f"><label>Narxi</label><input id="cPrice" inputmode="numeric" placeholder="10000000"></div>
+        <div class="f"><label>Muddatlar (oy) </label><input id="cMonths" placeholder="3,6,12"></div>
+        <button class="btn primary" id="cAdd">Qo‘shish</button>
       </div>
+
       <table>
-        <thead><tr><th>ID</th><th>Nomi</th><th>Narx</th><th>Muddatlar (oy)</th><th>Amal</th></tr></thead>
-        <tbody>
-          ${courses.map(c=>`
-            <tr>
-              <td>${c.id}</td>
-              <td>${c.name}</td>
-              <td>${Number(c.price||0).toLocaleString("ru-RU")}</td>
-              <td>${(c.terms||[]).join(", ")}</td>
-              <td><button class="btn" data-edit="${c.id}">Edit</button></td>
-            </tr>
-          `).join("")}
-        </tbody>
+        <tr><td style="font-weight:900">ID</td><td style="font-weight:900">Nomi</td><td style="font-weight:900">Narxi</td><td style="font-weight:900">Muddatlar</td><td></td></tr>
+        ${data.map(c=>`
+          <tr>
+            <td>${escapeHtml(c.id||"")}</td>
+            <td>${escapeHtml(c.name||"")}</td>
+            <td>${Number(c.price||0).toLocaleString("ru-RU")}</td>
+            <td>${escapeHtml((c.months||[]).join(","))}</td>
+            <td><button class="btn danger" onclick="window.__delCourse('${escapeHtml(c.id||"")}')">O‘chirish</button></td>
+          </tr>
+        `).join("")}
       </table>
     `;
-    $("content").innerHTML=html;
+    $("#content").innerHTML = html;
 
-    $("add").onclick = async ()=>{
+    $("#cAdd").onclick = async ()=>{
       try{
-        err("");
-        const id = prompt("Kurs ID (unique):"); if(!id) return;
-        const name = prompt("Kurs nomi:"); if(!name) return;
-        const price = Number((prompt("Narx (so‘m):")||"").replace(/[^\d]/g,""));
-        const terms = (prompt("Muddatlar (oy), masalan: 3,6,12")||"").split(",").map(x=>Number(x.trim())).filter(Boolean);
-        courses.push({ id, name, price, terms });
-        await appOptionSet(APP_KEYS.COURSES, courses);
+        setErr("");
+        const id = $("#cId").value.trim();
+        const name = $("#cName").value.trim();
+        const price = Number(String($("#cPrice").value||"").replace(/[^\d]/g,"")||0);
+        const months = $("#cMonths").value.split(",").map(s=>Number(s.trim())).filter(x=>x>0);
+
+        if(!id || !name || !price) throw new Error("ID, Nomi, Narxi to‘ldirilishi shart.");
+        const arr = (await optGet(KEY_COURSES)) || [];
+        if(arr.some(x=>String(x.id)===String(id))) throw new Error("Bu ID mavjud. Boshqa ID bering.");
+
+        arr.push({id,name,price,months});
+        await optSet(KEY_COURSES, arr);
         await renderCourses();
-      }catch(e){ err(e.message||String(e)); }
+      }catch(e){ setErr(e.message||String(e)); }
     };
 
-    document.querySelectorAll("button[data-edit]").forEach(b=>{
-      b.onclick = async ()=>{
-        try{
-          err("");
-          const id=b.getAttribute("data-edit");
-          const c=courses.find(x=>x.id===id);
-          if(!c) return;
-          const name=prompt("Nomi:", c.name); if(name==null) return;
-          const price=Number((prompt("Narx:", String(c.price||0))||"").replace(/[^\d]/g,""));
-          const terms=(prompt("Muddatlar:", (c.terms||[]).join(","))||"").split(",").map(x=>Number(x.trim())).filter(Boolean);
-          c.name=name; c.price=price; c.terms=terms;
-          await appOptionSet(APP_KEYS.COURSES, courses);
-          await renderCourses();
-        }catch(e){ err(e.message||String(e)); }
-      };
-    });
-  }
-
-  async function renderPerms(){
-    $("title").textContent="Ruxsatlar";
-    const perms = await appOptionGet(APP_KEYS.PERMS, DEFAULT_PERMS);
-
-    $("content").innerHTML = `
-      <div class="note" style="margin-bottom:10px">
-        MVP: role-based ruxsat. Keyin user/group bo‘yicha ham kengaytiramiz.
-      </div>
-      <table>
-        <thead><tr><th>Role</th><th>viewAll</th><th>add</th><th>edit</th><th>del</th></tr></thead>
-        <tbody>
-          ${Object.entries(perms.roles||{}).map(([r,v])=>`
-            <tr>
-              <td><b>${r}</b></td>
-              <td>${v.viewAll}</td>
-              <td>${v.add}</td>
-              <td>${v.edit}</td>
-              <td>${v.del}</td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-      <div class="row" style="margin-top:10px">
-        <button class="btn primary" id="save">Edit (prompt)</button>
-      </div>
-    `;
-
-    $("save").onclick = async ()=>{
+    window.__delCourse = async (id)=>{
       try{
-        err("");
-        const role = prompt("Qaysi role? (admin/operator)"); if(!role) return;
-        const cur = perms.roles[role] || { viewAll:false, add:false, edit:false, del:false };
-        const viewAll = confirm("viewAll bo‘lsinmi? (OK=ha)");
-        const add = confirm("add bo‘lsinmi?");
-        const edit = confirm("edit bo‘lsinmi?");
-        const del = confirm("del bo‘lsinmi?");
-        perms.roles[role] = { viewAll, add, edit, del };
-        await appOptionSet(APP_KEYS.PERMS, perms);
-        await renderPerms();
-      }catch(e){ err(e.message||String(e)); }
+        if(!confirm("Kursni o‘chirasizmi?")) return;
+        const arr = (await optGet(KEY_COURSES)) || [];
+        const n = arr.filter(x=>String(x.id)!==String(id));
+        await optSet(KEY_COURSES, n);
+        await renderCourses();
+      }catch(e){ setErr(e.message||String(e)); }
     };
   }
 
-  async function renderPipes(){
-    $("title").textContent="Voronkalar";
-    const pipes = await appOptionGet(APP_KEYS.PIPES, DEFAULT_PIPES);
+  async function renderACL(){
+    const data = (await optGet(KEY_ACL)) || {
+      canAdd:[], canEdit:[], canDelete:[], canSeeAll:[]
+    };
+    $("#content").innerHTML = `
+      <h2>Ruxsatlar</h2>
+      <div class="muted">User ID larni vergul bilan kiriting. (Bitrix user ID: /company/personal/user/#/ )</div>
 
-    // pipeline/category list
-    const cats = await new Promise((resolve,reject)=>{
-      BX24.callMethod("crm.dealcategory.list", {}, function(res){
-        if(res.error()){ reject(new Error(res.error())); return; }
-        resolve(res.data()||[]);
-      });
-    });
+      <div class="row">
+        <div class="f"><label>Qo‘sha oladi (canAdd)</label><textarea id="aAdd"></textarea></div>
+        <div class="f"><label>Tahrirlay oladi (canEdit)</label><textarea id="aEdit"></textarea></div>
+      </div>
+      <div class="row">
+        <div class="f"><label>O‘chira oladi (canDelete)</label><textarea id="aDel"></textarea></div>
+        <div class="f"><label>Boshqaning to‘lovini ko‘radi (canSeeAll)</label><textarea id="aAll"></textarea></div>
+      </div>
 
-    $("content").innerHTML = `
-      <div class="note" style="margin-bottom:10px">
-        Qaysi voronkada widget ko‘rinsin? Category ID larini belgilang.
-      </div>
-      <table>
-        <thead><tr><th>Enable</th><th>Category ID</th><th>Name</th></tr></thead>
-        <tbody>
-          ${cats.map(c=>{
-            const checked = (pipes.enabledCategoryIds||[]).includes(Number(c.ID));
-            return `
-              <tr>
-                <td><input type="checkbox" data-cat="${c.ID}" ${checked?"checked":""}></td>
-                <td>${c.ID}</td>
-                <td>${c.NAME}</td>
-              </tr>
-            `;
-          }).join("")}
-        </tbody>
-      </table>
-      <div class="row" style="margin-top:10px">
-        <button class="btn primary" id="saveP">Save</button>
-      </div>
+      <button class="btn primary" id="aSave">Saqlash</button>
     `;
 
-    $("saveP").onclick = async ()=>{
+    function join(v){ return Array.isArray(v)? v.join(", "):""; }
+    $("#aAdd").value = join(data.canAdd);
+    $("#aEdit").value = join(data.canEdit);
+    $("#aDel").value = join(data.canDelete);
+    $("#aAll").value = join(data.canSeeAll);
+
+    $("#aSave").onclick = async ()=>{
       try{
-        err("");
-        const ids=[];
-        document.querySelectorAll("input[data-cat]").forEach(ch=>{
-          if(ch.checked) ids.push(Number(ch.getAttribute("data-cat")));
-        });
-        pipes.enabledCategoryIds = ids;
-        await appOptionSet(APP_KEYS.PIPES, pipes);
-        alert("Saved.");
-      }catch(e){ err(e.message||String(e)); }
+        setErr("");
+        const parse = (s)=> String(s||"").split(",").map(x=>x.trim()).filter(Boolean).map(Number).filter(x=>x>0);
+        const out = {
+          canAdd: parse($("#aAdd").value),
+          canEdit: parse($("#aEdit").value),
+          canDelete: parse($("#aDel").value),
+          canSeeAll: parse($("#aAll").value)
+        };
+        await optSet(KEY_ACL, out);
+        alert("Saqlangan.");
+      }catch(e){ setErr(e.message||String(e)); }
+    };
+  }
+
+  async function renderFunnels(){
+    const data = (await optGet(KEY_FUNNELS)) || { allowedCategories: "" };
+    $("#content").innerHTML = `
+      <h2>Voronkalar</h2>
+      <div class="muted">Qaysi Deal voronkalarda widget ishlashini belgilang. CATEGORY_ID larni yozing (misol: 0,1,2).</div>
+      <div class="row">
+        <div class="f"><label>Allowed CATEGORY_ID list</label><input id="fCats" placeholder="0,1,2"></div>
+        <button class="btn primary" id="fSave">Saqlash</button>
+      </div>
+    `;
+    $("#fCats").value = data.allowedCategories || "";
+    $("#fSave").onclick = async ()=>{
+      try{
+        setErr("");
+        await optSet(KEY_FUNNELS, { allowedCategories: $("#fCats").value.trim() });
+        alert("Saqlangan. Deal widget Settings ichida ham shu qiymat ko‘rinadi.");
+      }catch(e){ setErr(e.message||String(e)); }
     };
   }
 
   async function renderStats(){
-    $("title").textContent="Statistika (MVP)";
-    $("content").innerHTML = `
-      <div class="note">
-        Bu bo‘limni keyin kengaytiramiz:
-        - qancha sotuv bo‘ldi
-        - qancha tushum bo‘ldi
-        - qancha tushum bo‘lishi kerak
-        - umumiy qarz
-        - TOP qarzdorlar, TOP undiruvchilar
+    $("#content").innerHTML = `
+      <h2>Statistika</h2>
+      <div class="muted">
+        Bu bo‘limni to‘liq (TOP qarzdorlar, TOP undiruvchilar, kurs bo‘yicha kesimlar) qilish uchun:
+        1) Schedule SPA (reja) + Payments SPA (to‘lovlar) aniq ishlashi kerak.
+        2) Voronkalar va Kurslar ro‘yxati to‘ldirilgan bo‘lishi kerak.
       </div>
-      <div style="margin-top:10px" class="note">
-        Hozirgi MVP’da statistikani Deal ichidagi widget hisoblaydi. Global statistikaga o‘tish uchun Payment SPA fieldlari va course mapping kerak bo‘ladi.
+      <div style="margin-top:10px" class="muted">
+        Tavsiya: bu statistikani server-side (cron) yoki Bitrix BI orqali kengaytirish mumkin.
+        Hozirgi versiyada admin panel faqat konfiguratsiyani boshqaradi.
       </div>
     `;
   }
 
-  async function renderApp(){
-    $("title").textContent="App sozlamalari";
-    const s = await appOptionGet(APP_KEYS.SETTINGS, {});
-    $("content").innerHTML = `
-      <div class="note">Bu sozlamalar Deal widget’dagi Settings bilan bir xil.</div>
-      <pre style="white-space:pre-wrap;border:1px solid var(--border);border-radius:10px;padding:10px;background:#fff">${JSON.stringify(s,null,2)}</pre>
+  async function renderSettings(){
+    const cfg = (await optGet(KEY_CFG)) || {};
+    $("#content").innerHTML = `
+      <h2>Sozlamalar</h2>
+      <div class="muted">Deal widget (deal.html) ishlashi uchun global konfiguratsiya.</div>
+      <pre>${escapeHtml(JSON.stringify(cfg,null,2))}</pre>
+      <div class="muted">Sozlamalarni Deal widget ichidagi “Settings” tugmasidan boshqaring (saqlansa shu yerda ham yangilanadi).</div>
     `;
   }
 
-  function setActive(btnId){
-    ["mCourses","mPerms","mPipes","mStats","mApp"].forEach(id=>{
-      $(id).classList.toggle("active", id===btnId);
-    });
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  // --------- navigation ----------
+  async function openTab(tab){
+    setErr("");
+    const btns = document.querySelectorAll(".nav button");
+    btns.forEach(b=>b.classList.toggle("active", b.dataset.tab===tab));
+    if(tab==="courses") return renderCourses();
+    if(tab==="acl") return renderACL();
+    if(tab==="funnels") return renderFunnels();
+    if(tab==="stats") return renderStats();
+    if(tab==="settings") return renderSettings();
   }
 
   BX24.init(async function(){
     try{
-      err("");
-      $("mCourses").onclick = async ()=>{ setActive("mCourses"); await renderCourses(); };
-      $("mPerms").onclick = async ()=>{ setActive("mPerms"); await renderPerms(); };
-      $("mPipes").onclick = async ()=>{ setActive("mPipes"); await renderPipes(); };
-      $("mStats").onclick = async ()=>{ setActive("mStats"); await renderStats(); };
-      $("mApp").onclick = async ()=>{ setActive("mApp"); await renderApp(); };
-
-      await renderCourses();
-    }catch(e){
-      err(e.message||String(e));
-    }
+      // menu click
+      document.querySelectorAll(".nav button").forEach(b=>{
+        b.onclick = ()=>openTab(b.dataset.tab);
+      });
+      await openTab("courses");
+    }catch(e){ setErr(e.message||String(e)); }
   });
 })();
 </script>
